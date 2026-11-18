@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>HID</title>
+<style>
+:root {
+  --primary:#0066cc;--primary-dark:#0052a3;--bg:#f5f7fa;--card:#ffffff;
+  --border:#e0e0e0;--text:#333;--dim:#666;--hover:#f0f0f0;--success:#4CAF50;--danger:#f44336;
+  --key-bg:#e8e8e8;--key-active:#0066cc;--key-active-text:#fff;
+  --pad-bg:#eef0f3;--pad-border:#ccc;--track-dot:#0066cc;
+}
+[data-theme="dark"] {
+  --primary:#00bcd4;--primary-dark:#0097a7;--bg:#0f0f0f;--card:#1a1a1a;
+  --border:#2a2a2a;--text:#f5f5f5;--dim:#888;--hover:#242424;--success:#66bb6a;--danger:#ef5350;
+  --key-bg:#2a2a2a;--key-active:#00bcd4;--key-active-text:#000;
+  --pad-bg:#1a1a1a;--pad-border:#2a2a2a;--track-dot:#00bcd4;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{height:100%;overflow:hidden}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  background:var(--bg);color:var(--text);height:100%;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+
+.wrapper{display:flex;height:100%;width:100%}
+.app{display:flex;flex-direction:column;flex:1;min-width:0;overflow:hidden;
+  transition:margin-right .3s cubic-bezier(0.4,0,0.2,1),width .3s cubic-bezier(0.4,0,0.2,1)}
+
+.header{display:flex;align-items:center;justify-content:space-between;
+  padding:6px 10px;background:var(--card);border-bottom:1px solid var(--border);flex-shrink:0;gap:6px}
+.header-title{font-size:14px;font-weight:700;white-space:nowrap}
+.header-actions{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.status-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.status-dot.on{background:var(--success)}
+.status-dot.off{background:var(--danger)}
+.status-text{font-size:11px;color:var(--dim);white-space:nowrap}
+.mini-btn{padding:3px 8px;border:1px solid var(--border);border-radius:5px;
+  background:var(--card);color:var(--text);font-size:11px;cursor:pointer;white-space:nowrap}
+.mini-btn:disabled{opacity:.5;cursor:not-allowed}
+
+.main-area{flex:1;overflow:hidden;position:relative}
+
+#desktop-mode{display:none;height:100%}
+#desktop-mode.on{display:flex;flex-direction:column}
+#desktop-toolbar{flex-shrink:0;padding:4px 4px 8px}
+#desktop-toolbar:empty{display:none}
+.capture-area{flex:1;display:flex;align-items:center;justify-content:center;
+  margin:4px;border-radius:10px;border:2px dashed var(--border);cursor:pointer;
+  background:var(--card);text-align:center;line-height:1.8;color:var(--dim);font-size:13px}
+.capture-area.locked{border-style:solid;border-color:var(--primary);color:var(--primary)}
+
+#touch-mode{display:none;flex-direction:column;height:100%}
+#touch-mode.on{display:flex}
+.touchpad-section{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+.touchpad-area{flex:1;min-height:80px;background:var(--pad-bg);
+  border:2px dashed var(--pad-border);border-radius:10px;margin:4px 8px;position:relative;overflow:hidden;
+  cursor:pointer;display:flex;align-items:center;justify-content:center}
+.keyboard-wrap{flex-shrink:0;padding:0 4px 4px}
+.touchpad-hint{font-size:12px;color:var(--dim);text-align:center;line-height:1.6;padding:8px}
+.track-dot{position:absolute;width:8px;height:8px;background:var(--track-dot);
+  border-radius:50%;opacity:0;transition:opacity .15s;pointer-events:none;transform:translate(-50%,-50%)}
+.track-dot.on{opacity:.6}
+.keyboard-wrap{padding:3px 4px 6px;background:var(--card);border-top:1px solid var(--border);flex-shrink:0}
+.key-row{display:flex;gap:4px;margin-bottom:5px;justify-content:center}
+.key-row.num-row{display:none}
+.key{flex:1;min-width:0;height:44px;border:1px solid var(--border);border-radius:4px;
+  background:var(--key-bg);color:var(--text);font-size:11px;font-weight:500;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:all .08s;text-align:center;overflow:hidden;white-space:nowrap}
+.key:active,.key.active{background:var(--key-active);color:var(--key-active-text)}
+.key.w2{flex:2}.key.w25{flex:2.5}.key.w15{flex:1.5}.key.w18{flex:1.8}.key.w22{flex:2.2}
+.key.w6{flex:6}.key.w05{flex:0.5}
+.key.w1\.2{flex:1.2}.key.w1\.3{flex:1.3}
+.key.sp{background:transparent;border:none;pointer-events:none}
+.key.mod{font-size:10px;font-weight:700;color:var(--primary)}
+.key.shift-on{background:var(--primary);color:var(--key-active-text)}
+.key.shift-locked{box-shadow:inset 0 0 0 2px var(--primary-dark)}
+.key.arrow{font-size:15px}
+.key-row.tb .key{height:42px;font-size:10px}
+.key-row.tb .key.mod{font-size:9px}
+
+.toolbar-wrap{max-height:0;opacity:0;overflow:hidden;transition:max-height .3s ease,opacity .25s ease}
+.toolbar-wrap.on{max-height:500px;opacity:1}
+
+/* Sidebar — matches files.html in usb_msc/ */
+.sidebar{position:fixed;right:0;top:0;width:240px;background:var(--card);padding:20px 16px;
+  border-left:1px solid var(--border);transform:translateX(100%);transition:transform .3s cubic-bezier(0.4,0,0.2,1);
+  z-index:100;height:100dvh;overflow-y:auto}
+.sidebar.open{transform:translateX(0)}
+.drawer-handle{position:fixed;right:0;top:50%;transform:translateY(-50%);
+  width:24px;height:50px;background:var(--card);border:1px solid var(--border);border-right:0;
+  border-radius:10px 0 0 10px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  color:var(--primary);z-index:101;transition:right .3s cubic-bezier(0.4,0,0.2,1);font-size:12px;
+  box-shadow:-2px 0 10px rgba(0,0,0,.1)}
+.sidebar.open~.drawer-handle{right:240px}
+.sidebar-title{font-size:13px;font-weight:600;color:var(--primary);margin-bottom:24px;
+  letter-spacing:1px;text-align:center;padding:14px 16px;background:transparent;
+  border:none;border-bottom:1px solid var(--border);border-radius:0;text-transform:uppercase}
+.sidebar-item{margin-bottom:20px}
+.sidebar-btn{width:100%;padding:10px 12px;background:var(--hover);border:1px solid var(--border);
+  color:var(--text);border-radius:8px;cursor:pointer;text-align:center;font-size:12px;transition:.15s;margin-bottom:6px}
+.sidebar-btn:hover{background:var(--border)}
+.sidebar-btn.sel{background:var(--primary);color:#fff;border-color:var(--primary)}
+
+/* Toggle switch */
+.switch{position:relative;display:inline-block;width:44px;height:24px}
+.switch input{opacity:0;width:0;height:0}
+.slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;
+  background-color:var(--border);transition:.4s;border-radius:24px}
+.slider:before{position:absolute;content:"";height:18px;width:18px;left:3px;bottom:3px;
+  background-color:white;transition:.4s;border-radius:50%}
+input:checked+.slider{background:linear-gradient(90deg,var(--primary),var(--primary-dark))}
+input:checked+.slider:before{transform:translateX(20px)}
+
+/* Speed ticks */
+#speed-box{border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:20px}
+#speed-box input[type="range"] {
+  width: 100%;
+  margin: 0;
+}
+#speed-ticks,#scroll-speed-ticks {
+  display: flex;
+  justify-content: space-between;
+  padding: 2px 3px 0 0;
+}
+#speed-ticks .tick,#scroll-speed-ticks .tick{font-size:10px;color:var(--border);text-align:center;width:14px;
+  cursor:pointer;transition:color .2s;position:relative}
+#speed-ticks .tick::before,#scroll-speed-ticks .tick::before{content:'';display:block;width:1px;height:6px;background:var(--border);
+  margin:0 auto 3px;transition:background .2s}
+#speed-ticks .tick.active,#scroll-speed-ticks .tick.active{color:var(--primary)}
+#speed-ticks .tick.active::before,#scroll-speed-ticks .tick.active::before{background:var(--primary)}
+
+/* Toast */
+.toast{position:fixed;top:12px;left:50%;transform:translateX(-50%);background:var(--primary);
+  color:#fff;padding:8px 20px;border-radius:20px;font-size:12px;z-index:200;opacity:0;transition:.2s;pointer-events:none}
+.toast.show{opacity:1}
+
+/* Push-out: sidebar pushes main content */
+@media(min-width:768px){
+  .header{padding:8px 14px}
+  .header-title{font-size:16px}
+  .touchpad-area{min-height:140px}
+  .key{height:44px;font-size:11px}
+  .key.mod{font-size:10px}
+  .capture-area{font-size:14px}
+  .sidebar.open~.app{margin-right:240px;width:calc(100% - 240px)}
+  .key-row.num-row{display:flex}
+}
+@media(min-width:1024px){
+  .touchpad-area{min-height:160px}
+  .key{height:48px;font-size:12px}
+  .key.mod{font-size:11px}
+  .sidebar.open~.app{margin-right:240px;width:calc(100% - 240px)}
+}
+</style>
+</head>
+<body data-theme="dark">
+
+<div class="wrapper">
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-title" data-i18n="modeTitle">操作模式</div>
+
+  <div class="sidebar-item" style="display:flex;align-items:center;justify-content:space-between;">
+    <span style="font-size:13px" data-i18n="autoMode">自动识别</span>
+    <label class="switch">
+      <input type="checkbox" id="auto-toggle" checked onchange="toggleAutoMode()">
+      <span class="slider"></span>
+    </label>
+  </div>
+
+  <div id="manual-btns" style="display:none">
+    <button class="sidebar-btn sel" data-mode="touch" data-i18n="touchMode">触控面板</button>
+    <button class="sidebar-btn" data-mode="desktop" data-i18n="desktopMode">桌面捕获</button>
+  </div>
+
+  <div class="sidebar-title" style="margin-top:24px" data-i18n="kbms">键鼠设置</div>
+
+  <div id="speed-box">
+    <div style="text-align:center;font-size:13px;margin-bottom:4px" data-i18n="mb">鼠标速度</div>
+    <input type="range" id="sensitivity" min="1" max="5" value="3">
+    <div id="speed-ticks">
+      <span class="tick active" data-v="1">1</span>
+      <span class="tick active" data-v="2">2</span>
+      <span class="tick active" data-v="3">3</span>
+      <span class="tick" data-v="4">4</span>
+      <span class="tick" data-v="5">5</span>
+    </div>
+    <div style="text-align:center;font-size:13px;margin:14px 0 4px" data-i18n="scrollSpeed">滚轮速度</div>
+    <input type="range" id="scroll-speed" min="1" max="5" value="3">
+    <div id="scroll-speed-ticks" class="speed-ticks">
+      <span class="tick active" data-v="1">1</span>
+      <span class="tick active" data-v="2">2</span>
+      <span class="tick active" data-v="3">3</span>
+      <span class="tick" data-v="4">4</span>
+      <span class="tick" data-v="5">5</span>
+    </div>
+  </div>
+
+  <div class="sidebar-item" style="display:flex;align-items:center;justify-content:space-between;">
+    <span style="font-size:13px" data-i18n="scrollRev">滚轮反向</span>
+    <label class="switch">
+      <input type="checkbox" id="scroll-reverse-toggle" onchange="toggleScrollReverse()">
+      <span class="slider"></span>
+    </label>
+  </div>
+
+  <div class="sidebar-item" style="display:flex;align-items:center;justify-content:space-between;">
+    <span style="font-size:13px" data-i18n="shortcutToggle">快捷键栏</span>
+    <label class="switch">
+      <input type="checkbox" id="shortcut-toggle" onchange="toggleShortcuts()">
+      <span class="slider"></span>
+    </label>
+  </div>
+</aside>
+
+<div class="app">
+  <div class="header">
+    <span class="header-title" data-i18n="title">HID 控制</span>
+    <div class="header-actions">
+      <span class="status-dot off" id="dot"></span>
+      <span class="status-text" id="status-txt" data-i18n="disconnected">未连接</span>
+      <button class="mini-btn" id="btn-disconnect" onclick="reconnectManual()" data-i18n="connectBtn">连接</button>
+      <button class="mini-btn" id="btn-paste" disabled data-i18n="paste">粘贴</button>
+    </div>
+  </div>
+  <div class="main-area">
+
+    <div id="desktop-mode">
+      <div class="capture-area" id="capture">
+        <span id="capture-hint">点击此处捕获键鼠<br>按 ESC 释放</span>
+      </div>
+      <div id="desktop-toolbar"></div>
+    </div>
+
+    <div id="touch-mode">
+      <div class="touchpad-section">
+        <div class="touchpad-area" id="touchpad">
+          <div class="touchpad-hint" id="pad-hint">滑动移动鼠标 · 双指滚轮</div>
+          <div class="track-dot" id="track-dot"></div>
+        </div>
+      </div>
+      <div class="keyboard-wrap" id="keyboard"></div>
+    </div>
+
+  </div>
+</div>
+
+<div class="drawer-handle" id="drawer-handle">◀</div>
+<div class="toast" id="toast"></div>
+</div>
+
+<script>
+var L=localStorage.getItem('lang')||(navigator.language.slice(0,2)==='zh'?'zh':'en');
+var i18n={zh:{title:'HID 键鼠控制',disconnected:'未连接',connecting:'连接中...',online:'已连接',
+  captureHint:'点击此处捕获键鼠<br>按 ESC 释放',captured:'已捕获',esc:'按 ESC 释放',
+  padHint:'滑动移动鼠标 · 双指滚轮',btnL:'左键',btnM:'中键',btnR:'右键',
+  paste:'粘贴',pasteDone:'已粘贴',pasteErr:'粘贴失败',pasteHint:'在此粘贴文本，回车发送，Esc 取消',
+  space:'空格',
+  modeTitle:'操作模式',mb:'鼠标速度',
+  autoMode:'自动识别',touchMode:'触控面板',desktopMode:'桌面捕获',
+  kbms:'键鼠设置',scrollRev:'滚轮反向',disconnectBtn:'断开',connectBtn:'连接',scrollSpeed:'滚轮速度',
+  shortcutToggle:'快捷键栏',kickOut:'您已被其他设备挤下线'
+},en:{title:'HID Control',disconnected:'Offline',connecting:'Connecting...',online:'Online',
+  captureHint:'Click to capture<br>ESC to release',captured:'Captured',esc:'ESC to release',
+  padHint:'Slide to move · Two-finger scroll',btnL:'Left',btnM:'Mid',btnR:'Right',
+  paste:'Paste',pasteDone:'Pasted',pasteErr:'Paste failed',pasteHint:'Paste here, Enter to send, Esc to cancel',
+  space:'Space',
+  modeTitle:'Mode',mb:'Mouse Speed',
+  autoMode:'Auto Detect',touchMode:'Touchpad',desktopMode:'Desktop',
+  kbms:'Keyboard & Mouse',scrollRev:'Scroll Reverse',disconnectBtn:'Disconnect',connectBtn:'Connect',scrollSpeed:'Scroll Speed',
+  shortcutToggle:'Shortcut Keys',kickOut:'Kicked off by another device'}};
+var T=function(k){return i18n[L][k]||k};
+
+var savedTheme=localStorage.getItem('theme');
+if(savedTheme)document.body.dataset.theme=savedTheme;
+
+var hidActive=false,locked=false,mode='auto',currentMode='touch',sensitivity=3;
+var dm=document.getElementById('desktop-mode'),tm=document.getElementById('touch-mode');
+var cap=document.getElementById('capture'),capHint=document.getElementById('capture-hint');
+var toast=document.getElementById('toast');
+var dotEl=document.getElementById('dot'),stxt=document.getElementById('status-txt');
+
+function showToast(m){toast.textContent=m;toast.classList.add('show');
+  setTimeout(function(){toast.classList.remove('show')},1500)}
+function updateMode(m){
+  currentMode=m;dm.classList.toggle('on',m==='desktop');tm.classList.toggle('on',m==='touch');
+}
+
+// ========== Device Detection ==========
+var hasTouch=window.matchMedia('(pointer: coarse)').matches;
+var hasFine=window.matchMedia('(pointer: fine)').matches;
+function autoDetect(){return (!hasFine||hasTouch)&&screen.width<1024?'touch':'desktop'}
+function applyMode(){
+  if(mode==='auto')updateMode(autoDetect());else updateMode(mode);
+}
+applyMode();
+
+// ========== Sidebar ==========
+document.getElementById('drawer-handle').onclick=function(){
+  var sb=document.getElementById('sidebar');sb.classList.toggle('open');
+  this.textContent=sb.classList.contains('open')?'▶':'◀'};
+
+// Auto-detect toggle
+var autoToggle=document.getElementById('auto-toggle');
+var manualBtns=document.getElementById('manual-btns');
+function toggleAutoMode(){
+  mode=autoToggle.checked?'auto':(manualBtns.querySelector('.sel')||manualBtns.querySelector('[data-mode]')).dataset.mode;
+  manualBtns.style.display=autoToggle.checked?'none':'block';
+  applyMode();localStorage.setItem('hid_mode',mode);
+}
+toggleAutoMode();
+document.querySelectorAll('#manual-btns .sidebar-btn[data-mode]').forEach(function(b){
+  b.onclick=function(){
+    mode=this.dataset.mode;
+    document.querySelectorAll('#manual-btns .sidebar-btn').forEach(function(x){x.classList.remove('sel')});
+    this.classList.add('sel');
+    applyMode();localStorage.setItem('hid_mode',mode);
+  };
+});
+
+// Sensitivity + ticks
+var sensSlider=document.getElementById('sensitivity');
+var ticks=document.querySelectorAll('#speed-ticks .tick');
+function updateTicks(v){
+  ticks.forEach(function(t){t.classList.toggle('active',parseInt(t.dataset.v)<=v)});
+}
+sensSlider.oninput=function(){sensitivity=parseInt(this.value);updateTicks(sensitivity)};
+ticks.forEach(function(t){t.onclick=function(){sensSlider.value=this.dataset.v;sensitivity=parseInt(this.dataset.v);updateTicks(sensitivity)}});
+
+var scrollReverse=localStorage.getItem('scrollReverse')==='1';
+(function(){
+  var sr=document.getElementById('scroll-reverse-toggle');
+  if(sr)sr.checked=scrollReverse;
+})();
+function toggleScrollReverse(){
+  scrollReverse=document.getElementById('scroll-reverse-toggle').checked;
+  localStorage.setItem('scrollReverse',scrollReverse?'1':'0');
+}
+
+var shortcutVisible=localStorage.getItem('shortcutVisible')==='1';
+(function(){
+  var st=document.getElementById('shortcut-toggle');
+  if(st)st.checked=shortcutVisible;
+})();
+function toggleShortcuts(){
+  shortcutVisible=document.getElementById('shortcut-toggle').checked;
+  localStorage.setItem('shortcutVisible',shortcutVisible?'1':'0');
+  document.querySelectorAll('.toolbar-wrap').forEach(function(tw){
+    tw.classList.toggle('on',shortcutVisible);
+  });
+}
+
+var scrollSpeed=parseInt(localStorage.getItem('scrollSpeed'))||3;
+var scrollSpeedSlider=document.getElementById('scroll-speed');
+var scrollSpeedTicks=document.querySelectorAll('#scroll-speed-ticks .tick');
+function updateScrollSpeedTicks(v){
+  scrollSpeedTicks.forEach(function(t){t.classList.toggle('active',parseInt(t.dataset.v)<=v)});
+}
+(function(){
+  var ss=document.getElementById('scroll-speed');
+  if(ss)ss.value=scrollSpeed;
+  updateScrollSpeedTicks(scrollSpeed);
+})();
+if(scrollSpeedSlider){
+  scrollSpeedSlider.oninput=function(){scrollSpeed=parseInt(this.value);updateScrollSpeedTicks(scrollSpeed);localStorage.setItem('scrollSpeed',scrollSpeed)};
+}
+scrollSpeedTicks.forEach(function(t){t.onclick=function(){
+  var v=parseInt(this.dataset.v);scrollSpeed=v;
+  if(scrollSpeedSlider)scrollSpeedSlider.value=v;
+  updateScrollSpeedTicks(v);localStorage.setItem('scrollSpeed',v);
+}});
+
+// ========== WebSocket (binary frames) ==========
+var ws=null,wsReady=false,wsClosed=false,wsLastTry=0,wsConnectTimeout=null,wsConnectStart=0;
+
+function shouldBeConnected(){
+  return !document.hidden;
+}
+
+function updateWsUI(connected){
+  dotEl.className='status-dot '+(connected?'on':'off');
+  stxt.textContent=T(connected?'online':'disconnected');
+  document.getElementById('btn-paste').disabled=!(connected&&hidActive);
+  var bt=document.getElementById('btn-disconnect');
+  if(!bt)return;
+  bt.style.display='inline-block';
+  bt.textContent=T(connected?'disconnectBtn':'connectBtn');
+  bt.onclick=connected?disconnectManual:reconnectManual;
+}
+
+function wsPause(){
+  wsClosed=true;
+  if(ws){try{ws.close()}catch(e){}}
+  ws=null;wsReady=false;
+  wsLastTry=0;
+  updateWsUI(false);
+}
+
+function wsResume(){
+  if(!shouldBeConnected())return;
+  if(ws&&ws.readyState===WebSocket.OPEN)return;
+  wsClosed=false;
+  wsConnect();
+}
+
+function wsConnect(){
+  if(wsClosed||!shouldBeConnected())return;
+  if(Date.now()-wsLastTry<500)return;
+  wsLastTry=Date.now();
+  if(ws){try{ws.close()}catch(e){}}
+  wsConnectStart=Date.now();
+  stxt.textContent=T('connecting');
+  if(wsConnectTimeout){clearTimeout(wsConnectTimeout);}
+  wsConnectTimeout=setTimeout(function(){
+    if(!wsReady){ws=null;wsReady=false;updateWsUI(false);}
+  },10000);
+  var proto=location.protocol==='https:'?'wss':'ws';
+  ws=new WebSocket(proto+'://'+location.host+'/api/hid/ws');
+  ws.binaryType='arraybuffer';
+  ws.onopen=function(){
+    if(wsConnectTimeout){clearTimeout(wsConnectTimeout);wsConnectTimeout=null;}
+    wsReady=true;
+    var elapsed=Date.now()-wsConnectStart;
+    if(elapsed<500){
+      setTimeout(function(){updateWsUI(true)},500-elapsed);
+    }else{
+      updateWsUI(true);
+    }
+  };
+  ws.onclose=function(e){
+    if(wsConnectTimeout){clearTimeout(wsConnectTimeout);wsConnectTimeout=null;}
+    wsReady=false;updateWsUI(false);
+    if(!wsClosed&&!document.hidden){stxt.textContent=T('kickOut');}
+  };
+  ws.onerror=function(){ws=null;wsReady=false;};
+}
+
+function disconnectManual(){
+  if(ws&&ws.readyState===WebSocket.OPEN){try{ws.send('bye_bye')}catch(_){}}
+  wsPause();
+}
+function reconnectManual(){
+  wsResume();
+}
+
+function wsSend(buf){
+  if(!wsReady||!ws)return;
+  try{ws.send(buf)}catch(e){}
+}
+
+// 页面可见时自动连接，不可见（后台标签页）时不连接
+window.addEventListener('pagehide',function(){wsClosed=true;if(ws){ws.close();ws=null}});
+window.addEventListener('beforeunload',function(){wsClosed=true;if(ws){ws.close();ws=null}});
+if(!document.hidden){wsResume();}
+
+// ========== HID Status ==========
+function checkStatus(){
+  fetch('/api/usb/status').then(function(r){return r.json()}).then(function(d){
+    hidActive=d.mode===1;
+    document.getElementById('btn-paste').disabled=!(hidActive&&wsReady);
+  }).catch(function(){});
+}
+checkStatus();setInterval(checkStatus,3000);
+
+// ========== HID Send ==========
+function sendHidMouse(dx,dy,btns,wheel,desktopMode){
+  if(!wsReady||!hidActive)return;
+  var s=sensitivity||3;
+  var scale=desktopMode?(s*0.22):(s*0.6);
+  var x=Math.round(dx*scale),y=Math.round(dy*scale);
+  x=x<-127?-127:(x>127?127:x);y=y<-127?-127:(y>127?127:y);
+  var buf=new Uint8Array(5);
+  buf[0]=0x01;buf[1]=x;buf[2]=y;buf[3]=btns||0;buf[4]=wheel||0;
+  wsSend(buf.buffer);
+}
+function sendHidKey(code,pressed){
+  if(!wsReady||!hidActive)return;
+  var buf=new Uint8Array(3);
+  buf[0]=0x04;buf[1]=pressed?1:0;buf[2]=code;
+  wsSend(buf.buffer);
+}
+
+// ========== Desktop: Pointer Lock ==========
+cap.onclick=function(){if(!locked)cap.requestPointerLock().catch(function(){})};
+var escExitScheduled=false,escAutoExit=false;
+document.addEventListener('pointerlockchange',function(){
+  var wasLocked=locked;
+  locked=document.pointerLockElement===cap;
+  cap.classList.toggle('locked',locked);
+  if(locked){
+    escAutoExit=false;
+  }else if(wasLocked){
+    btnState=0;mouseDx=0;mouseDy=0;mouseWh=0;mouseMoved=false;
+    if(escExitScheduled){
+      escExitScheduled=false;escHeld=false;
+      if(escTimer){clearTimeout(escTimer);escTimer=null;}
+      sendHidKey(0x29,false);
+    }else{
+      escAutoExit=true;
+    }
+  }
+  capHint.innerHTML=locked?
+    '<span style="color:var(--primary)">'+T('captured')+'</span><br><small>'+T('esc')+'</small>':
+    T('captureHint');
+});
+
+var mouseDx=0,mouseDy=0,mouseWh=0,mouseMoved=false;
+setInterval(function(){
+  if(!hidActive){mouseDx=0;mouseDy=0;mouseWh=0;mouseMoved=false;return}
+  if(currentMode==='desktop'){
+    if(!locked){mouseDx=0;mouseDy=0;mouseWh=0;mouseMoved=false;return}
+    if(mouseMoved||mouseWh){
+      sendHidMouse(mouseDx,mouseDy,btnState,mouseWh,true);
+      mouseDx=0;mouseDy=0;mouseWh=0;mouseMoved=false;
+    }
+  }else if(currentMode==='touch'){
+    if(pdx||pdy){
+      sendHidMouse(pdx,pdy,btnStateT,0,false);
+      pdx=0;pdy=0;
+    }
+  }
+},6);
+document.addEventListener('mousemove',function(e){
+  if(!locked||!hidActive||currentMode!=='desktop')return;
+  mouseDx+=e.movementX;mouseDy+=e.movementY;mouseMoved=true;
+});
+
+var btnState=0;
+document.addEventListener('mousedown',function(e){
+  if(!locked||!hidActive||currentMode!=='desktop')return;
+  e.preventDefault();var m={0:1,1:4,2:2,3:8,4:16}[e.button]||0;btnState|=m;sendHidMouse(0,0,btnState,0,true);
+});
+document.addEventListener('mouseup',function(e){
+  if(!locked||!hidActive||currentMode!=='desktop')return;
+  e.preventDefault();var m={0:1,1:4,2:2,3:8,4:16}[e.button]||0;btnState&=~m;sendHidMouse(0,0,btnState,0,true);
+});
+document.addEventListener('wheel',function(e){
+  if(!locked||!hidActive||currentMode!=='desktop')return;
+  e.preventDefault();var wy=e.deltaY>0?-1:(e.deltaY<0?1:0);
+  if(scrollReverse)wy=-wy;
+  if(wy){mouseWh+=wy*scrollSpeed;mouseMoved=true;}
+},{passive:false});
+
+// Key code map
+var CODE_MAP={
+  'KeyA':0x04,'KeyB':0x05,'KeyC':0x06,'KeyD':0x07,'KeyE':0x08,'KeyF':0x09,'KeyG':0x0A,'KeyH':0x0B,
+  'KeyI':0x0C,'KeyJ':0x0D,'KeyK':0x0E,'KeyL':0x0F,'KeyM':0x10,'KeyN':0x11,'KeyO':0x12,'KeyP':0x13,
+  'KeyQ':0x14,'KeyR':0x15,'KeyS':0x16,'KeyT':0x17,'KeyU':0x18,'KeyV':0x19,'KeyW':0x1A,'KeyX':0x1B,
+  'KeyY':0x1C,'KeyZ':0x1D,'Digit1':0x1E,'Digit2':0x1F,'Digit3':0x20,'Digit4':0x21,'Digit5':0x22,
+  'Digit6':0x23,'Digit7':0x24,'Digit8':0x25,'Digit9':0x26,'Digit0':0x27,'Enter':0x28,'Escape':0x29,
+  'Backspace':0x2A,'Tab':0x2B,'Space':0x2C,'Minus':0x2D,'Equal':0x2E,'BracketLeft':0x2F,
+  'BracketRight':0x30,'Backslash':0x31,'Semicolon':0x33,'Quote':0x34,'Backquote':0x35,'Comma':0x36,
+  'Period':0x37,'Slash':0x38,'CapsLock':0x39,'F1':0x3A,'F2':0x3B,'F3':0x3C,'F4':0x3D,'F5':0x3E,
+  'F6':0x3F,'F7':0x40,'F8':0x41,'F9':0x42,'F10':0x43,'F11':0x44,'F12':0x45,'Insert':0x49,'Home':0x4A,
+  'PageUp':0x4B,'Delete':0x4C,'End':0x4D,'PageDown':0x4E,'ArrowRight':0x4F,'ArrowLeft':0x50,
+  'ArrowDown':0x51,'ArrowUp':0x52,'ShiftLeft':0xE1,'ShiftRight':0xE5,'ControlLeft':0xE0,
+  'ControlRight':0xE4,'AltLeft':0xE2,'AltRight':0xE6,'MetaLeft':0xE3,'MetaRight':0xE7
+};
+
+var escHeld=false,escTimer=null;
+document.addEventListener('keydown',function(e){
+  if(e.code==='Escape'){
+    e.preventDefault();e.stopPropagation();
+    if(!hidActive||currentMode!=='desktop')return;
+    if(!escHeld){
+      escHeld=true;
+      sendHidKey(0x29,true);
+      escTimer=setTimeout(function(){
+        if(escHeld){escHeld=false;escTimer=null;sendHidKey(0x29,false);escExitScheduled=true;escAutoExit=false;}
+      },1000);
+    }
+    return;
+  }
+  if(!locked||!hidActive||currentMode!=='desktop')return;
+  if(e.code==='MetaLeft'||e.code==='MetaRight')return;
+  var c=CODE_MAP[e.code];
+  if(c){sendHidKey(c,true);}
+});
+document.addEventListener('keyup',function(e){
+  if(e.code==='Escape'){
+    e.preventDefault();
+    if(escHeld){
+      escHeld=false;
+      if(escTimer){clearTimeout(escTimer);escTimer=null;}
+      sendHidKey(0x29,false);
+      if(escAutoExit){escAutoExit=false;cap.requestPointerLock().catch(function(){})}
+    }
+    return;
+  }
+  if(!locked||!hidActive||currentMode!=='desktop')return;
+  if(e.code==='MetaLeft'||e.code==='MetaRight')return;
+  var c=CODE_MAP[e.code];
+  if(c){sendHidKey(c,false);}
+});
+
+// ========== Touch: Virtual Keyboard (Mobile Optimized) ==========
+var CHAR_TO_HID={};
+(function(){
+  for(var i=0;i<26;i++)CHAR_TO_HID[String.fromCharCode(97+i)]=0x04+i;
+  for(var i=1;i<=9;i++)CHAR_TO_HID[String(i)]=0x1E+(i-1);
+  CHAR_TO_HID['0']=0x27;
+  CHAR_TO_HID[',']=0x36;CHAR_TO_HID['.']=0x37;CHAR_TO_HID['-']=0x2D;
+  CHAR_TO_HID['=']=0x2E;CHAR_TO_HID['/']=0x38;
+  CHAR_TO_HID[';']=0x33;CHAR_TO_HID["'"]=0x34;
+})();
+
+// Shifted symbols → send as Shift + base HID key combo
+var SHIFT_SYMBOLS={
+  '!':0x1E,'@':0x1F,'#':0x20,'$':0x21,'%':0x22,'^':0x23,
+  '&':0x24,'*':0x25,'(':0x26,')':0x27,
+  '_':0x2D,'+':0x2E,':':0x33,'"':0x34,'?':0x38
+};
+
+var KEY_DEFS={
+  shift:{t:'\u21E7',c:0xE1,mod:1,arrow:1,action:'shift',w:1.2},
+  bksp:{t:'\u232B',c:0x2A,mod:1,arrow:1,w:1.2},
+  space:{t:T('space'),c:0x2C,w:6},
+  enter:{t:'Enter',c:0x28,mod:1,arrow:1,w:1.3},
+  ctrl:{t:'Ctrl',c:0xE0,mod:1},win:{t:'Win',c:0xE3,mod:1},
+  alt:{t:'Alt',c:0xE2,mod:1},esc:{t:'Esc',c:0x29,mod:1},tab:{t:'Tab',c:0x2B,mod:1},
+  left:{t:'\u2190',c:0x50,mod:1},up:{t:'\u2191',c:0x52,mod:1},
+  down:{t:'\u2193',c:0x51,mod:1},right:{t:'\u2192',c:0x4F,mod:1},
+  ctrl_z:{t:'Ctrl+Z',combo:{mods:[0xE0],key:0x1D}},
+  ctrl_x:{t:'Ctrl+X',combo:{mods:[0xE0],key:0x1B}},
+  ctrl_c:{t:'Ctrl+C',combo:{mods:[0xE0],key:0x06}},
+  ctrl_v:{t:'Ctrl+V',combo:{mods:[0xE0],key:0x19}},
+  ctrl_a:{t:'Ctrl+A',combo:{mods:[0xE0],key:0x04}},
+  ctrl_s:{t:'Ctrl+S',combo:{mods:[0xE0],key:0x16}},
+  ctrl_y:{t:'Ctrl+Y',combo:{mods:[0xE0],key:0x1C}},
+  ctrl_f:{t:'Ctrl+F',combo:{mods:[0xE0],key:0x09}},
+  alt_tab:{t:'Alt+Tab',combo:{mods:[0xE2],key:0x2B}},
+  win_d:{t:'Win+D',combo:{mods:[0xE3],key:0x07}},
+  gap:{t:'',sp:1,w:0.3},
+  num:{t:'123',mod:1,action:'num'},
+  abc:{t:'ABC',mod:1,action:'abc'}
+};
+
+var TOOLBAR_ROWS=[
+  ['ctrl','win','alt','esc','tab'],
+  ['left','up','down','right'],
+  ['ctrl_z','ctrl_x','ctrl_c','ctrl_v','ctrl_a'],
+  ['ctrl_s','ctrl_y','ctrl_f','alt_tab','win_d']
+];
+
+var KEY_PAGES={
+  qwerty:[
+    ['1','2','3','4','5','6','7','8','9','0'],
+    ['q','w','e','r','t','y','u','i','o','p'],
+    ['a','s','d','f','g','h','j','k','l'],
+    ['shift','gap','z','x','c','v','b','n','m','bksp'],
+    ['num',',','space','.','enter']
+  ],
+  num:[
+    ['1','2','3','4','5','6','7','8','9','0'],
+    ['@','#','$','%','&','*','-','+','(',')'],
+    ['.',',','?','!',"'",'"',':',';','/','bksp'],
+    ['abc','space','.','enter']
+  ]
+};
+
+var shiftActive=false,shiftLocked=false,shiftTapTimer=null,currentKeyPage='qwerty';
+function setShift(v){
+  shiftActive=v;
+  var sk=document.querySelector('.key[data-action="shift"]');
+  if(sk){
+    sk.classList.toggle('shift-on',v);
+    sk.classList.toggle('shift-locked',shiftLocked&&v);
+    sk.textContent=shiftLocked&&v?'\u21EA':'\u21E7';
+  }
+}
+function toggleShift(){
+  if(shiftLocked&&shiftActive){
+    // Locked → single tap unlocks
+    shiftLocked=false;
+    setShift(false);
+    if(shiftTapTimer){clearTimeout(shiftTapTimer);shiftTapTimer=null;}
+    return;
+  }
+  if(shiftTapTimer){
+    // Double tap → lock
+    clearTimeout(shiftTapTimer);
+    shiftTapTimer=null;
+    shiftLocked=true;
+    setShift(true);
+  }else{
+    // First tap → toggle immediately (no flash)
+    setShift(!shiftActive);
+    shiftTapTimer=setTimeout(function(){
+      shiftTapTimer=null;
+    },350);
+  }
+}
+function switchKeyPage(page){
+  currentKeyPage=page;shiftLocked=false;setShift(false);buildKeyboard();
+}
+
+function sendCombo(mods, key){
+  mods.forEach(function(m){sendHidKey(m,true);});
+  sendHidKey(key,true);sendHidKey(key,false);
+  mods.reverse().forEach(function(m){sendHidKey(m,false);});
+}
+
+function resolveKey(keyName){
+  if(KEY_DEFS[keyName])return KEY_DEFS[keyName];
+  if(keyName.length===1){
+    if(CHAR_TO_HID[keyName]!==undefined)return{t:keyName,c:CHAR_TO_HID[keyName]};
+    if(SHIFT_SYMBOLS[keyName]!==undefined)return{t:keyName,combo:{mods:[0xE1],key:SHIFT_SYMBOLS[keyName]}};
+  }
+  return{t:keyName};
+}
+
+function buildKey(def){
+  var d=document.createElement('div');
+  d.className='key';
+  if(def.t)d.textContent=def.t;
+  if(def.w)d.classList.add('w'+def.w);
+  if(def.sp)d.classList.add('sp');
+  if(def.mod)d.classList.add('mod');
+  if(def.arrow)d.classList.add('arrow');
+  if(def.action==='shift'){d.dataset.action='shift';d.addEventListener('click',toggleShift);return d;}
+  if(def.action==='num'){d.addEventListener('click',function(){switchKeyPage('num');});return d;}
+  if(def.action==='abc'){d.addEventListener('click',function(){switchKeyPage('qwerty');});return d;}
+  if(def.combo){d.addEventListener('click',function(){sendCombo(def.combo.mods,def.combo.key);});return d;}
+  if(def.c===undefined)return d;
+  var code=def.c;
+  d.dataset.code=code;
+  function press(e){e.preventDefault();d.classList.add('active');if(shiftActive){sendHidKey(0xE1,true);}sendHidKey(code,true);}
+  function release(e){
+    e.preventDefault();
+    if(d.classList.contains('active')){d.classList.remove('active');sendHidKey(code,false);if(shiftActive){sendHidKey(0xE1,false);if(!shiftLocked)setShift(false);}}
+  }
+  d.addEventListener('pointerdown',press);
+  d.addEventListener('pointerup',release);
+  d.addEventListener('pointerleave',release);
+  d.addEventListener('pointercancel',release);
+  return d;
+}
+
+function buildKeyboard(){
+  var kb=document.getElementById('keyboard');
+  kb.innerHTML='';
+  // Toolbar with transition wrapper
+  var tw=document.createElement('div');
+  tw.className='toolbar-wrap'+(shortcutVisible?' on':'');
+  TOOLBAR_ROWS.forEach(function(row){
+    var r=document.createElement('div');r.className='key-row tb';
+    row.forEach(function(keyName){var def=resolveKey(keyName);if(def.t)r.appendChild(buildKey(def));});
+    tw.appendChild(r);
+  });
+  var sep=document.createElement('div');sep.style.cssText='height:4px;flex-shrink:0';
+  tw.appendChild(sep);
+  kb.appendChild(tw);
+  // Current page keyboard
+  var rows=KEY_PAGES[currentKeyPage];
+  rows.forEach(function(row,idx){
+    var r=document.createElement('div');r.className='key-row';
+    if(currentKeyPage==='qwerty'&&idx===0)r.classList.add('num-row');
+    if(currentKeyPage==='qwerty'){
+      if(idx===2)r.style.padding='0 3.5% 0 3.5%';
+    }
+    row.forEach(function(keyName){var def=resolveKey(keyName);if(def.t)r.appendChild(buildKey(def));});
+    kb.appendChild(r);
+  });
+  // Desktop toolbar with transition wrapper
+  var dt=document.getElementById('desktop-toolbar');
+  if(dt){
+    dt.innerHTML='';
+    var dtw=document.createElement('div');
+    dtw.className='toolbar-wrap'+(shortcutVisible?' on':'');
+    TOOLBAR_ROWS.forEach(function(row){
+      var r=document.createElement('div');r.className='key-row tb';
+      row.forEach(function(keyName){var def=resolveKey(keyName);if(def.t)r.appendChild(buildKey(def));});
+      dtw.appendChild(r);
+    });
+    dt.appendChild(dtw);
+  }
+  if(shiftActive)setShift(true);
+}
+buildKeyboard();
+
+// ========== Touch: Touchpad ==========
+var pad=document.getElementById('touchpad'),pdot=document.getElementById('track-dot'),phint=document.getElementById('pad-hint');
+var pt=false,pf=0,plx=0,ply=0,pdx=0,pdy=0,ptap=null,p2tap=null,pwheel=0;
+var lastTapEnd=0,dragging=false,btnStateT=0;
+function pshow(x,y){pdot.style.left=x+'px';pdot.style.top=y+'px';pdot.classList.add('on')}
+function phide(){pdot.classList.remove('on')}
+pad.addEventListener('touchstart',function(e){e.preventDefault();pt=true;pf=e.touches.length;
+  if(pf===1){
+    var t=e.touches[0];plx=t.clientX;ply=t.clientY;pdx=0;pdy=0;
+    p2tap=null;
+    if(Date.now()-lastTapEnd<500){
+      dragging=true;btnStateT=1;sendHidMouse(0,0,1,0,false);ptap=null;
+    }else{
+      ptap={x:t.clientX,y:t.clientY,time:Date.now(),moved:0};
+    }
+    pshow(t.clientX-pad.getBoundingClientRect().left,t.clientY-pad.getBoundingClientRect().top);
+    phint.style.display='none';
+  }else if(pf===2){
+    ptap=null;dragging=false;
+    var t0=e.touches[0],t1=e.touches[1];
+    plx=(t0.clientX+t1.clientX)/2;ply=(t0.clientY+t1.clientY)/2;
+    p2tap={x:plx,y:ply,time:Date.now(),moved:0};
+  }
+},{passive:false});
+pad.addEventListener('touchmove',function(e){e.preventDefault();if(!pt)return;
+  if(e.touches.length===1){
+    var t=e.touches[0];var dx=t.clientX-plx,dy=t.clientY-ply;
+    plx=t.clientX;ply=t.clientY;pdx+=dx;pdy+=dy;
+    pshow(t.clientX-pad.getBoundingClientRect().left,t.clientY-pad.getBoundingClientRect().top);
+    if(ptap){ptap.moved+=Math.abs(dx)+Math.abs(dy);if(ptap.moved>8)ptap=null}
+  }else if(e.touches.length>=2){
+    ptap=null;dragging=false;
+    if(p2tap){
+      var t0=e.touches[0],t1=e.touches[1];
+      var cx2=(t0.clientX+t1.clientX)/2,cy2=(t0.clientY+t1.clientY)/2;
+      p2tap.moved+=Math.abs(cx2-p2tap.x)+Math.abs(cy2-p2tap.y);
+      p2tap.x=cx2;p2tap.y=cy2;
+      if(p2tap.moved>12)p2tap=null;
+    }
+    var t0=e.touches[0],t1=e.touches[1];
+    var cx=(t0.clientX+t1.clientX)/2,cy=(t0.clientY+t1.clientY)/2;
+    pwheel+=(scrollReverse?1:-1)*(ply-cy)*scrollSpeed/12;
+    var w=Math.trunc(pwheel);
+    if(w){sendHidMouse(0,0,0,w,false);pwheel-=w}
+    plx=cx;ply=cy;pdx=0;pdy=0;
+  }
+  pf=e.touches.length},{passive:false});
+pad.addEventListener('touchend',function(e){e.preventDefault();
+  if(e.touches.length===0){
+    pt=false;pf=0;phide();phint.style.display='';pwheel=0;
+    if(dragging){dragging=false;btnStateT=0;sendHidMouse(0,0,0,0,false)}
+    if(ptap&&Date.now()-ptap.time<200&&ptap.moved<8){
+      sendHidMouse(0,0,1,0,false);
+      setTimeout(function(){sendHidMouse(0,0,0,0,false)},40);
+      lastTapEnd=Date.now();
+    }
+    if(p2tap&&Date.now()-p2tap.time<200&&p2tap.moved<12){
+      sendHidMouse(0,0,2,0,false);
+      setTimeout(function(){sendHidMouse(0,0,0,0,false)},40);
+    }
+    p2tap=null;
+  }else{
+    pf=e.touches.length;
+    if(e.touches.length===1){var t=e.touches[0];plx=t.clientX;ply=t.clientY}
+  }
+},{passive:false});
+
+// ========== Clipboard Paste ==========
+var CHAR_MAP={
+  'a':[0x04,0],'b':[0x05,0],'c':[0x06,0],'d':[0x07,0],'e':[0x08,0],'f':[0x09,0],'g':[0x0A,0],
+  'h':[0x0B,0],'i':[0x0C,0],'j':[0x0D,0],'k':[0x0E,0],'l':[0x0F,0],'m':[0x10,0],'n':[0x11,0],
+  'o':[0x12,0],'p':[0x13,0],'q':[0x14,0],'r':[0x15,0],'s':[0x16,0],'t':[0x17,0],'u':[0x18,0],
+  'v':[0x19,0],'w':[0x1A,0],'x':[0x1B,0],'y':[0x1C,0],'z':[0x1D,0],'1':[0x1E,0],'2':[0x1F,0],
+  '3':[0x20,0],'4':[0x21,0],'5':[0x22,0],'6':[0x23,0],'7':[0x24,0],'8':[0x25,0],'9':[0x26,0],
+  '0':[0x27,0],' ':[0x2C,0],'\n':[0x28,0],'\t':[0x2B,0],'-':[0x2D,0],'=':[0x2E,0],'[':[0x2F,0],
+  ']':[0x30,0],'\\':[0x31,0],';':[0x33,0],"'":[0x34,0],'`':[0x35,0],',':[0x36,0],'.':[0x37,0],
+  '/':[0x38,0],'A':[0x04,1],'B':[0x05,1],'C':[0x06,1],'D':[0x07,1],'E':[0x08,1],'F':[0x09,1],
+  'G':[0x0A,1],'H':[0x0B,1],'I':[0x0C,1],'J':[0x0D,1],'K':[0x0E,1],'L':[0x0F,1],'M':[0x10,1],
+  'N':[0x11,1],'O':[0x12,1],'P':[0x13,1],'Q':[0x14,1],'R':[0x15,1],'S':[0x16,1],'T':[0x17,1],
+  'U':[0x18,1],'V':[0x19,1],'W':[0x1A,1],'X':[0x1B,1],'Y':[0x1C,1],'Z':[0x1D,1],'!':[0x1E,1],
+  '@':[0x1F,1],'#':[0x20,1],'$':[0x21,1],'%':[0x22,1],'^':[0x23,1],'&':[0x24,1],'*':[0x25,1],
+  '(':[0x26,1],')':[0x27,1],'_':[0x2D,1],'+':[0x2E,1],'{':[0x2F,1],'}':[0x30,1],'|':[0x31,1],
+  ':':[0x33,1],'"':[0x34,1],'~':[0x35,1],'<':[0x36,1],'>':[0x37,1],'?':[0x38,1]
+};
+function sendPasteText(text){
+  if(!text||!wsReady||!hidActive){showToast(T('pasteErr'));return}
+  var raw=[];
+  for(var i=0;i<text.length&&i<512;i++){
+    var m=CHAR_MAP[text[i]];
+    if(m){raw.push(m[0]);raw.push(m[1]);}
+  }
+  if(!raw.length){showToast(T('pasteErr'));return}
+  var cnt=raw.length/2;
+  var buf=new Uint8Array(3+raw.length);
+  buf[0]=0x05;buf[1]=(cnt>>8)&0xFF;buf[2]=cnt&0xFF;
+  for(var j=0;j<raw.length;j++)buf[3+j]=raw[j];
+  wsSend(buf.buffer);
+  showToast(T('pasteDone')+' ('+cnt+')');
+}
+function showPasteFallback(){
+  var overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:299';
+  var ta=document.createElement('textarea');
+  ta.style.cssText='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:80%;max-width:400px;height:120px;z-index:300;padding:10px;border:2px solid var(--primary);border-radius:8px;background:var(--card);color:var(--text);font-size:14px;resize:none';
+  ta.placeholder=T('pasteHint');
+  var done=false;
+  var cleanup=function(){
+    if(done)return;done=true;
+    if(ta.parentNode)document.body.removeChild(ta);
+    if(overlay.parentNode)document.body.removeChild(overlay);
+  };
+  ta.addEventListener('paste',function(e){
+    var text=(e.clipboardData||window.clipboardData).getData('text');
+    if(text){e.preventDefault();cleanup();sendPasteText(text);}
+  });
+  ta.onkeydown=function(e){
+    if(e.key==='Escape'){cleanup();}
+    if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();var t=ta.value;cleanup();sendPasteText(t);}
+  };
+  overlay.onclick=cleanup;
+  document.body.appendChild(overlay);
+  document.body.appendChild(ta);
+  ta.focus();
+}
+document.getElementById('btn-paste').onclick=function(){
+  if(!hidActive||!wsReady)return;
+  if(navigator.clipboard&&navigator.clipboard.readText){
+    navigator.clipboard.readText().then(sendPasteText).catch(function(){showPasteFallback()});
+  }else{
+    showPasteFallback();
+  }
+};
+
+// ========== Page visibility WS control ==========
+document.addEventListener('visibilitychange',function(){
+  if(document.hidden){
+    wsPause();
+  }else{
+    wsResume();
+  }
+});
+
+// 响应父页面切回 HID 标签时恢复连接（CSS display 切换不触发 visibilitychange）
+window.addEventListener('message',function(e){
+  if(e.data&&e.data.type==='pageVisible'){wsResume()}
+});
+
+// ========== lang/theme sync ==========
+var bcL=new BroadcastChannel('superdongle_lang');
+bcL.onmessage=function(e){L=e.data;localStorage.setItem('lang',e.data);applyLang()};
+var bcT=new BroadcastChannel('superdongle_theme');
+bcT.onmessage=function(e){document.body.dataset.theme=e.data;localStorage.setItem('theme',e.data)};
+window.addEventListener('storage',function(e){
+  if(e.key==='lang'&&e.newValue){L=e.newValue;applyLang()}
+  if(e.key==='theme'&&e.newValue)document.body.dataset.theme=e.newValue});
+function applyLang(){
+  document.querySelectorAll('[data-i18n]').forEach(function(e){if(e.dataset.i18n)e.textContent=T(e.dataset.i18n)});
+  document.title=T('title');
+  if(!locked)capHint.innerHTML=T('captureHint');
+}applyLang();
+</script>
+</body>
+</html>

@@ -1,0 +1,153 @@
+#
+# sdkconfig.defaults - SuperDongle 移植到 ESP-IDF 的默认配置
+# 使用方法：
+#   1. 删除项目根目录下旧的 sdkconfig 和 sdkconfig.old
+#   2. 然后运行 idf.py build（会自动加载此默认配置生成新的 sdkconfig）
+#
+
+# ======================================================================
+# 板型选择（通过 idf.py menuconfig → SuperDongle Hardware Configuration 切换）
+# ======================================================================
+# CONFIG_BOARD_ESP32_CHIP=y
+CONFIG_BOARD_ESP32_MODULE=y
+
+# ======================================================================
+# 应用版本
+# ======================================================================
+CONFIG_APP_PROJECT_VER_FROM_CONFIG=y
+CONFIG_APP_PROJECT_VER="1.0.0"
+
+# ======================================================================
+# 硬件规格（16MB Flash + 8MB PSRAM）
+# ======================================================================
+# CPU 配置
+CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_160=y
+CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ=160
+
+# Flash 配置（16MB, QIO, 80MHz）
+CONFIG_ESPTOOLPY_FLASHMODE_QIO=y
+CONFIG_ESPTOOLPY_FLASHMODE="qio"
+CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y
+CONFIG_ESPTOOLPY_FLASHSIZE="16MB"
+
+# psram (8MB OCT, 80MHz)
+CONFIG_SPIRAM=y
+CONFIG_SPIRAM_MODE_OCT=y
+CONFIG_SPIRAM_SPEED_80M=y
+CONFIG_SPIRAM_SPEED=80
+CONFIG_SPIRAM_ALLOW_BSS_SEG_EXTERNAL_MEMORY=y 
+CONFIG_SPIRAM_ALLOW_NOINIT_SEG_EXTERNAL_MEMORY=y
+CONFIG_SPIRAM_TRY_ALLOCATE_WIFI_LWIP=y
+CONFIG_SPIRAM_USE_CAPS_ALLOC=y
+
+# 自定义分区表
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+CONFIG_PARTITION_TABLE_FILENAME="partitions.csv"
+CONFIG_PARTITION_TABLE_OFFSET=0x10000
+CONFIG_PARTITION_TABLE_MD5=y
+
+# 串口控制台
+CONFIG_ESP_CONSOLE_UART_DEFAULT=y
+CONFIG_ESP_CONSOLE_UART_NUM=0
+CONFIG_ESP_CONSOLE_UART_BAUDRATE=115200
+
+# 日志等级
+CONFIG_LOG_DEFAULT_LEVEL_INFO=y
+CONFIG_LOG_DEFAULT_LEVEL=3
+
+# ======================================================================
+# FreeRTOS（10ms精度）
+# ======================================================================
+CONFIG_FREERTOS_HZ=100
+
+# ======================================================================
+# 电源管理（动态变频省电）
+# ======================================================================
+CONFIG_PM_ENABLE=y
+CONFIG_FREERTOS_USE_TICKLESS_IDLE=y
+
+# ======================================================================
+# FATFS（SD 卡文件系统，必选）
+# ======================================================================
+CONFIG_FATFS_LFN_HEAP=y
+CONFIG_FATFS_API_ENCODING_UTF_8=y
+
+# ======================================================================
+# Wi-Fi 优化(RAM 开销: 高)
+# ======================================================================
+CONFIG_ESP_WIFI_STATIC_RX_BUFFER_NUM=16
+CONFIG_ESP_WIFI_DYNAMIC_RX_BUFFER_NUM=85
+CONFIG_ESP_WIFI_DYNAMIC_TX_BUFFER_NUM=64
+CONFIG_ESP_WIFI_TX_BA_WIN=32
+CONFIG_ESP_WIFI_RX_BA_WIN=32
+CONFIG_ESP_WIFI_EXTRA_IRAM_OPT=y
+
+# ======================================================================
+# TCP/IP 协议栈优化 (RAM 开销: 中高)
+# ======================================================================
+CONFIG_LWIP_TCPIP_TASK_PRIO=23
+CONFIG_LWIP_IRAM_OPTIMIZATION=y
+CONFIG_LWIP_EXTRA_IRAM_OPTIMIZATION=y
+CONFIG_LWIP_TCP_SND_BUF_DEFAULT=65535
+CONFIG_LWIP_TCP_WND_DEFAULT=65535
+CONFIG_LWIP_TCPIP_RECVMBOX_SIZE=64
+CONFIG_LWIP_TCP_RECVMBOX_SIZE=64
+CONFIG_LWIP_TCP_OOSEQ_MAX_PBUFS=4
+CONFIG_LWIP_UDP_RECVMBOX_SIZE=64
+CONFIG_LWIP_MAX_SOCKETS=20
+
+# ======================================================================
+# 文件操作缓冲区优化 (RAM 开销: 高)总计 RAM 开销约为: 10 × 128 + 32 = 1312 KB
+# ======================================================================
+CONFIG_FILE_WRITE_BUFFER_COUNT=10
+CONFIG_FILE_WRITE_BUFFER_SIZE=128
+CONFIG_FILE_DMA_BUFFER_SIZE=32
+
+# ======================================================================
+# TinyUSB（MSC + HID 设备）
+# ======================================================================
+CONFIG_TINYUSB_DESC_MANUFACTURER_STRING="SuperDongle"
+CONFIG_TINYUSB_DESC_PRODUCT_STRING="SuperDongle MSC Device"
+CONFIG_TINYUSB_MSC_ENABLED=y
+CONFIG_TINYUSB_MSC_BUFSIZE=8192
+CONFIG_TINYUSB_MSC_MOUNT_PATH="/disk"
+
+CONFIG_TINYUSB_HID_ENABLED=y
+CONFIG_TINYUSB_HID_COUNT=2
+
+CONFIG_TINYUSB_NET_MODE_NCM=y
+
+
+# ======================================================================
+# mbedTLS（HTTPS/OTA 证书包）
+# ======================================================================
+CONFIG_MBEDTLS_CERTIFICATE_BUNDLE=y
+CONFIG_MBEDTLS_CERTIFICATE_BUNDLE_DEFAULT_CMN=y
+
+# ======================================================================
+# HTTPD WebSocket 支持（HID 二进制帧传输）
+# ======================================================================
+CONFIG_HTTPD_WS_SUPPORT=y
+
+# ======================================================================
+# 安全防护：Flash 加密（Development 模式，开发阶段可用）
+#   - 首次烧录时自动生成 AES-256 密钥烧入 eFuse
+#   - Flash 上所有内容为密文（app + SPIFFS + NVS）
+#   - esptool.py read_flash 读出的数据无法使用
+#   - Development 模式允许反复明文烧录，不影响日常开发
+#   - 出货前切换为 Release 模式
+# ======================================================================
+# CONFIG_SECURE_FLASH_ENC_ENABLED=y
+# CONFIG_SECURE_FLASH_ENCRYPTION_MODE_DEVELOPMENT=y
+# CONFIG_SECURE_FLASH_ENCRYPTION_KEYSIZE=256
+
+# ======================================================================
+# 安全防护：Secure Boot V2（签名验证固件）
+#   - 只有 RSA-3072 签名过的固件才能启动
+#   - 防止修改固件后烧入（如去掉校验逻辑）
+#   - 签名密钥需离线安全保管
+# ======================================================================
+# CONFIG_SECURE_BOOT=y
+# CONFIG_SECURE_BOOT_V2_ENABLED=y
+# CONFIG_SECURE_BOOT_SIGNING_KEY="secure_boot_signing_key.pem"

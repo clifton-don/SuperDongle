@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>WiFi</title>
+<link rel="stylesheet" href="index.css">
+<link rel="icon" href="assets/brand/icon.png">
+<script src="pages.js"></script>
+</head>
+<body data-theme="dark">
+
+<div class="layout">
+  <!-- 侧边栏 -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand-wrapper" id="logo-wrapper">
+      <img class="sidebar-brand" src="assets/brand/brand.png" alt="SuperDongle">
+      <span class="dev-badge" id="dev-badge">DEV</span>
+    </div>
+    <div class="sidebar-item">
+      <div class="sidebar-section-title" data-label-key="systemFunctions" data-label-fallback="System Functions">系统功能</div>
+      <button class="sidebar-btn active" data-page="network" data-usb-mode="0,1">
+        <svg class="sidebar-icon network-icon" viewBox="0 0 1024 1024" fill="#888" width="16" height="16"><path d="M909.989 343.281c-21.76-51.446-52.904-97.643-92.568-137.307-39.663-39.664-85.86-70.808-137.306-92.568-53.28-22.536-109.858-33.962-168.164-33.962S397.067 90.87 343.787 113.406c-51.446 21.76-97.643 52.904-137.307 92.568-39.664 39.664-70.808 85.86-92.568 137.307-22.536 53.28-33.962 109.858-33.962 168.164s11.426 114.884 33.962 168.164c21.76 51.445 52.904 97.643 92.568 137.306 39.664 39.664 85.86 70.809 137.307 92.568 53.28 22.535 109.858 33.962 168.164 33.962s114.884-11.427 168.164-33.962c51.445-21.76 97.643-52.904 137.306-92.568 39.664-39.663 70.809-85.86 92.568-137.306 22.535-53.28 33.962-109.858 33.962-168.164s-11.427-114.884-33.962-168.164zM543.951 376.03c17.57-0.243 35.095-0.683 52.536-1.368a1990.762 1990.762 0 0 0 91.131-5.678c10.157 34.378 16.643 71.314 19.389 110.46H543.951V376.03z m0-64.069V163.41c17.617 12.176 39.372 29.845 61.074 54.197 23.42 26.28 43.109 56.138 58.784 89.019-41.937 3.147-82.117 4.783-119.858 5.335z m-64-144.763v144.705a2038.572 2038.572 0 0 1-103.41-4.309 1929.6 1929.6 0 0 1-11.183-0.786c15.195-31.915 34.175-60.991 56.676-86.711 20.284-23.185 40.722-40.49 57.917-52.899zM370.842 371.354a2124.301 2124.301 0 0 0 109.109 4.606v103.484H322.25c2.742-39.079 9.208-75.96 19.335-110.285 9.453 0.776 19.21 1.512 29.257 2.195z m-112.731 108.09H145.342c3.916-45.757 16.208-89.778 36.139-130.276 20.257 3.578 52.836 8.759 95.407 13.641-9.902 36.699-16.182 75.682-18.777 116.635z m-0.859 64c1.975 39.144 9.712 78.242 23.101 116.799-44.093 4.976-77.797 10.319-98.621 13.992-20.08-40.64-32.458-84.841-36.39-130.792h111.91z m64.098 0h158.601v104.048c-36.37 0.602-72.818 2.13-109.109 4.601-8.41 0.573-16.612 1.182-24.609 1.821-14.322-36.523-22.659-73.543-24.883-110.47z m158.601 168.103v131.712c-16.974-15.877-36.574-35.962-56.038-59.735-18.064-22.064-33.892-44.698-47.379-67.668a2038.38 2038.38 0 0 1 103.417-4.309z m64 136.665V711.487c34.387 0.503 70.782 1.903 108.68 4.527-13.467 22.915-29.263 45.496-47.286 67.509-21.547 26.32-43.262 48.119-61.394 64.689z m52.536-199.426a2063.187 2063.187 0 0 0-52.536-1.384V543.444h163.958c-2.227 36.975-10.582 74.045-24.939 110.615a1994.972 1994.972 0 0 0-86.483-5.273z m175.521-105.342H878.56c-3.928 45.898-16.283 90.051-36.322 130.652a1822.84 1822.84 0 0 0-93.476-13.439c13.478-38.691 21.264-77.929 23.246-117.213z m-0.859-64c-2.605-41.111-8.924-80.238-18.891-117.061a1821.491 1821.491 0 0 0 90.233-13.075c19.89 40.46 32.158 84.432 36.07 130.136H771.149z m1.017-228.215a373.188 373.188 0 0 1 34.046 39.155 1772.853 1772.853 0 0 1-75.117 9.98c-19.529-46.785-45.825-88.91-78.291-125.338a423.863 423.863 0 0 0-5.386-5.927c46.185 18.263 88.573 45.955 124.748 82.13zM384.81 165.923a420.788 420.788 0 0 0-8.355 9.102c-32.552 36.525-58.904 78.775-78.449 125.71-32.357-3.484-59.48-7.244-80.226-10.469a373.386 373.386 0 0 1 33.956-39.037c38.338-38.338 83.654-67.152 133.074-85.306zM251.736 771.659a373.444 373.444 0 0 1-33.584-38.548c22.526-3.498 52.529-7.614 88.626-11.328 18.229 35.542 41.31 70.356 68.867 103.808a678.068 678.068 0 0 0 35.727 39.995c-59.757-16.875-114.524-48.814-159.636-93.927z m368.249 91.745a677.032 677.032 0 0 0 33.629-37.814c27.469-33.344 50.487-68.043 68.689-103.466a1780.315 1780.315 0 0 1 83.528 10.88 373.34 373.34 0 0 1-33.665 38.654c-43.23 43.232-95.324 74.373-152.181 91.746z"/></svg>
+        <span>网络配置</span>
+      </button>
+      <button class="sidebar-btn" data-page="other">
+        <svg class="sidebar-icon" viewBox="0 0 1024 1024" fill="#888" width="16" height="16"><path d="M512.25928 704c-108.8 0-192-83.2-192-192s83.2-192 192-192 192 83.2 192 192-83.2 192-192 192z m0-320c-70.4 0-128 57.6-128 128s57.6 128 128 128 128-57.6 128-128-57.6-128-128-128z" /><path d="M640.25928 1024H384.25928c-19.2 0-32-12.8-32-32v-121.6c-25.6-12.8-51.2-25.6-70.4-38.4l-102.4 64c-12.8 6.4-32 6.4-44.8-12.8l-128-224C-6.14072 640 0.25928 620.8 19.45928 614.4l102.4-64v-76.8l-102.4-64C0.25928 403.2-6.14072 384 6.65928 364.8l128-224c6.4-12.8 25.6-19.2 44.8-6.4l102.4 64c19.2-12.8 44.8-32 70.4-38.4V32c0-19.2 12.8-32 32-32h256c19.2 0 32 12.8 32 32v121.6c25.6 12.8 51.2 25.6 70.4 38.4l102.4-64c12.8-6.4 32-6.4 44.8 12.8l128 224c12.8 19.2 6.4 38.4-12.8 44.8l-102.4 64v76.8l102.4 64c12.8 6.4 19.2 25.6 12.8 44.8l-128 224c-6.4 12.8-25.6 19.2-44.8 12.8l-102.4-64c-19.2 12.8-44.8 32-70.4 38.4V992c0 19.2-12.8 32-32 32z m-224-64h192v-108.8c0-12.8 6.4-25.6 19.2-32 32-12.8 64-32 89.6-51.2 12.8-6.4 25.6-6.4 38.4 0l96 57.6 96-166.4-96-57.6c-12.8-12.8-19.2-25.6-12.8-38.4 0-19.2 6.4-32 6.4-51.2s0-32-6.4-51.2c0-12.8 6.4-25.6 12.8-32l96-57.6-96-166.4-96 57.6c-12.8 6.4-25.6 6.4-38.4 0-25.6-19.2-57.6-38.4-89.6-51.2-12.8-12.8-19.2-25.6-19.2-38.4V64H416.25928v108.8c0 12.8-6.4 25.6-19.2 32-32 12.8-64 32-89.6 51.2-12.8 6.4-25.6 6.4-38.4 0l-96-51.2-96 166.4 96 57.6c12.8 6.4 19.2 19.2 12.8 32 0 19.2-6.4 32-6.4 51.2 0 19.2 0 32 6.4 51.2 6.4 12.8 0 25.6-12.8 32l-96 57.6 96 166.4 96-57.6c12.8-6.4 25.6-6.4 38.4 0 25.6 19.2 57.6 38.4 89.6 51.2 12.8 6.4 19.2 19.2 19.2 32V960z" /></svg>
+        <span>其他设置</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- 抽屉把手 -->
+  <div class="drawer-handle" id="drawer-handle">▶</div>
+
+  <!-- 主内容区 -->
+  <main class="main">
+    <!-- 网络配置页面 -->
+    <div id="network-page">
+      <div id="network-normal-content">
+      <!-- 第一模块：WiFi状态 -->
+      <section class="accordion" id="status-view">
+        <div class="accordion-header" onclick="toggleSection('status-view')">
+          <span class="accordion-title" id="title-status">WiFi状态</span>
+          <span class="accordion-arrow">▼</span>
+        </div>
+        <div class="accordion-content">
+          <div id="wifi-status-content">
+            <div class="flex-row mt-0">
+              <div class="result-card flex-1">
+                <small class="result-label">当前状态</small>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span class="status-indicator"></span>
+                  <span class="result-value text-dim">...</span>
+                </div>
+              </div>
+              <div class="result-card flex-1">
+                <small class="result-label">浏览器访问地址</small>
+                <span class="result-value text-dim">...</span>
+              </div>
+            </div>
+            <div class="flex-row mt-12">
+              <div class="result-card flex-1">
+                <small class="result-label">网络名称</small>
+                <span class="result-value text-dim">...</span>
+              </div>
+              <div class="result-card flex-1">
+                <small class="result-label">IP 地址</small>
+                <span class="result-value text-dim">...</span>
+              </div>
+            </div>
+            <div class="flex-row mt-12">
+              <div class="result-card flex-1">
+                <small class="result-label">模式</small>
+                <span class="result-value text-dim">...</span>
+              </div>
+              <div class="result-card flex-1">
+                <small class="result-label">信号强度</small>
+                <span class="result-value text-dim">...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 第二模块：已保存WiFi -->
+      <section class="accordion" id="saved-view">
+        <div class="accordion-header" onclick="toggleSection('saved-view')">
+          <span class="accordion-title" id="title-saved">已保存WiFi</span>
+          <span class="accordion-arrow">▼</span>
+        </div>
+        <div class="accordion-content">
+          <div class="wifi-list">
+            <div id="saved-list"></div>
+            <p class="empty-hint" id="saved-empty" style="display: block;">暂无已保存的WiFi</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 第三模块：扫描WiFi -->
+      <section class="accordion" id="scan-view">
+        <div class="accordion-header" onclick="toggleSection('scan-view')">
+          <span class="accordion-title" id="title-scan">扫描WiFi</span>
+          <span class="accordion-arrow">▼</span>
+        </div>
+        <div class="accordion-content">
+          <div class="wifi-list" id="wifi-list"></div>
+          <button type="button" class="btn secondary" id="btn-rescan"></button>
+        </div>
+      </section>
+
+      <!-- 第四模块：连接WiFi -->
+      <section class="accordion" id="connect-view">
+        <div class="accordion-header" onclick="toggleSection('connect-view')">
+          <span class="accordion-title" id="title-connect">连接WiFi</span>
+          <span class="accordion-arrow">▼</span>
+        </div>
+        <div class="accordion-content">
+          <form id="config-form">
+            <input type="text" id="input-ssid" placeholder="网络名称" autocomplete="off" required>
+            <div class="password-wrap">
+              <input type="password" id="input-pass" placeholder="密码" autocomplete="off">
+              <button type="button" class="password-toggle" id="pass-toggle">
+                <svg id="icon-eye-off" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/>
+                  <line x1="1" y1="1" x2="23" y2="23"/>
+                </svg>
+                <svg id="icon-eye" class="hidden" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+              </button>
+            </div>
+            <button type="submit" class="btn" id="btn-save"></button>
+          </form>
+        </div>
+      </section>
+      </div>
+
+      <!-- 断网时替换为断网页面（无滚动） -->
+      <div id="network-offline-content" class="hidden">
+        <div class="offline-message">
+          <p class="offline-text" id="network-offline-hint"></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 其他设置页面 -->
+    <div id="other-page" class="hidden">
+      <section class="accordion" id="general-view">
+        <div class="accordion-header" onclick="toggleSection('general-view')">
+          <span class="accordion-title">通用设置</span>
+          <span class="accordion-arrow">▼</span>
+        </div>
+        <div class="accordion-content">
+          <div class="sidebar-item">
+            <label class="sidebar-label" id="label-theme">主题模式</label>
+            <button class="sidebar-btn" id="btn-theme"></button>
+          </div>
+          <div class="sidebar-item">
+            <label class="sidebar-label" id="label-lang">语言设置</label>
+            <button class="sidebar-btn" id="btn-lang"></button>
+          </div>
+        </div>
+      </section>
+      <section class="accordion" id="version-view">
+        <div class="accordion-header" onclick="toggleSection('version-view')">
+          <span class="accordion-title" id="title-version-info">系统管理</span>
+          <span class="accordion-arrow">▼</span>
+        </div>
+        <div class="accordion-content">
+          <div class="sidebar-item">
+            <label class="sidebar-label" id="label-firmware">固件版本</label>
+            <button class="sidebar-btn" id="btn-firmware" onclick="showOtaDialog()">
+              <span id="firmware-version">1.0.0</span>
+              <span id="ota-badge" class="ota-badge hidden">●</span>
+            </button>
+          </div>
+          <div class="sidebar-item">
+            <label class="sidebar-label" id="label-mdns">浏览器访问地址</label>
+            <button class="sidebar-btn" id="btn-mdns">superdongle.local</button>
+          </div>
+          <div class="sidebar-item">
+            <label class="sidebar-label" id="label-system-operation">系统操作</label>
+            <button class="sidebar-btn" id="btn-factory-reset" onclick="showFactoryResetDialog()">
+              <span id="btn-factory-reset-text">恢复出厂设置</span>
+            </button>
+          </div>
+          <div class="sidebar-item">
+            <label class="sidebar-label" id="label-led">LED 指示灯</label>
+            <label class="switch">
+              <input type="checkbox" id="led-toggle" checked onchange="toggleLed()">
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <!-- 开发者选项（默认隐藏，logo 连击 10 次解锁） -->
+      <section class="accordion hidden" id="dev-view">
+        <div class="accordion-header" onclick="toggleSection('dev-view')">
+          <span class="accordion-title">Developer Options</span>
+          <span class="accordion-arrow">▼</span>
+        </div>
+        <div class="accordion-content">
+          <div class="sidebar-item">
+            <label class="sidebar-label">OTA Server URL</label>
+            <button class="sidebar-btn" id="btn-ota-url">已加载默认服务器地址</button>
+          </div>
+          <div class="sidebar-item">
+            <button class="sidebar-btn" id="btn-dev-reboot">重启SuperDongle</button>
+          </div>
+          <div class="sidebar-item">
+            <button class="sidebar-btn" id="btn-dev-exit">退出开发者模式</button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- 断网全屏提示 -->
+    <div id="offline-overlay" class="offline-overlay hidden">
+      <div class="offline-message">
+        <p class="offline-text" id="offline-hint"></p>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- 确认对话框 -->
+<div id="confirm-dialog" class="dialog-overlay">
+  <div class="dialog-container">
+    <h3 id="confirm-title" class="text-primary mb-16 text-center">确认操作</h3>
+    <p id="confirm-message" style="margin-bottom: 20px; line-height: 1.5;">当前处于STA模式，如果连接新WiFi会导致断开当前管理页面，是否确定继续？</p>
+    <div class="dialog-actions">
+      <button type="button" class="btn secondary" id="confirm-cancel">取消</button>
+      <button type="button" class="btn" id="confirm-ok">确定</button>
+    </div>
+  </div>
+</div>
+
+<!-- 连接成功通知弹窗 -->
+<div id="success-dialog" class="dialog-overlay">
+  <div class="dialog-container">
+    <h3 id="success-title" class="text-primary mb-16 text-center"></h3>
+    <p id="success-hint" style="font-size: 13px; color: var(--dim); margin-bottom: 16px; text-align: center; line-height: 1.5;"></p>
+    <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;">
+      <div class="result-card flex-1">
+        <small class="result-label" id="success-ip-label"></small>
+        <span class="result-value text-accent break-all" id="success-ip-value"></span>
+      </div>
+      <div class="result-card flex-1">
+        <small class="result-label" id="success-mdns-label"></small>
+        <span class="result-value text-accent break-all" id="success-mdns-value"></span>
+      </div>
+    </div>
+    <div style="display: flex; justify-content: center;">
+      <button type="button" class="btn" id="success-ok"></button>
+    </div>
+  </div>
+</div>
+
+<!-- 修改浏览器访问地址弹窗 -->
+<div id="mdns-dialog" class="dialog-overlay">
+  <div class="dialog-container">
+    <h3 id="mdns-dialog-title" class="text-primary mb-16 text-center">修改浏览器访问地址</h3>
+    <p id="mdns-dialog-hint" style="margin-bottom: 12px; font-size: 14px; color: var(--dim); line-height: 1.5;">
+      仅支持字母、数字和连字符 (-)，长度 1-31 个字符。保存后重启设备生效。
+    </p>
+    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 20px;">
+      <input type="text" id="mdns-input" maxlength="31" placeholder="例如：mybox"
+        style="flex: 1; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px;
+          font-size: 14px; background: var(--bg); color: var(--fg); outline: none;"
+        oninput="this.value = this.value.replace(/[^a-zA-Z0-9-]/g, '').replace(/^-/, '')">
+      <span style="color: var(--dim); font-size: 14px; flex-shrink: 0;">.local</span>
+    </div>
+    <div class="dialog-actions">
+      <button type="button" class="btn secondary" id="mdns-dialog-cancel">取消</button>
+      <button type="button" class="btn" id="mdns-dialog-ok">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- OTA URL 配置弹窗（开发者模式） -->
+<div id="ota-url-dialog" class="dialog-overlay">
+  <div class="dialog-container">
+    <h3 class="text-primary mb-16 text-center">OTA Server URL</h3>
+    <p style="margin-bottom: 12px; font-size: 14px; color: var(--dim); line-height: 1.5;">
+      设置后下次 OTA 检查将使用此地址。清空可恢复默认地址。保存后设备自动重启。
+    </p>
+    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 20px;">
+      <input type="text" id="ota-url-input" maxlength="512"
+             placeholder="例如：http://192.168.1.100:8000/version.json"
+             style="flex: 1; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px;
+                    font-size: 14px; background: var(--bg); color: var(--fg); outline: none;">
+    </div>
+    <div class="dialog-actions">
+      <button type="button" class="btn secondary" id="ota-url-dialog-cancel">取消</button>
+      <button type="button" class="btn" id="ota-url-dialog-save">保存并重启</button>
+    </div>
+  </div>
+</div>
+
+<!-- 重启确认弹窗 -->
+<div id="reboot-dialog" class="dialog-overlay">
+  <div class="dialog-container" style="max-width: 360px;">
+    <h3 id="reboot-title" class="text-primary mb-16 text-center"></h3>
+    <p id="reboot-dialog-msg" style="margin-bottom: 20px; font-size: 14px; color: var(--text); text-align: center;">
+    </p>
+    <div class="dialog-actions">
+      <button type="button" class="btn secondary" id="reboot-dialog-cancel"></button>
+      <button type="button" class="btn" id="reboot-dialog-confirm"></button>
+    </div>
+  </div>
+</div>
+
+<!-- 恢复出厂设置确认弹窗 -->
+<div id="factory-reset-dialog" class="dialog-overlay">
+  <div class="dialog-container" style="max-width: 380px;">
+    <h3 id="factory-reset-title" class="text-primary mb-16 text-center"></h3>
+    <p id="factory-reset-message" style="margin-bottom: 20px; font-size: 14px; color: var(--text); text-align: center; line-height: 1.6;"></p>
+    <div class="dialog-actions">
+      <button type="button" class="btn secondary" id="factory-reset-dialog-cancel"></button>
+      <button type="button" class="btn danger" id="factory-reset-dialog-confirm"></button>
+    </div>
+  </div>
+</div>
+
+<!-- OTA 更新弹窗 -->
+<div id="ota-dialog" class="dialog-overlay">
+  <div class="dialog-container">
+    <h3 id="ota-dialog-title" class="text-primary mb-20 text-center" style="font-size: 18px;">固件更新</h3>
+
+    <div id="ota-dialog-content" class="mb-20">
+
+      <div id="ota-offline-row" style="display: none; text-align: center; padding: 8px 0; font-size: 14px; color: var(--dim);">
+        网络未连接
+      </div>
+
+      <div id="ota-checking-area" style="display: none; text-align: center; padding: 24px 0;">
+        <div class="loading-text">
+          <div class="loading-spinner"></div>
+          <span id="ota-checking-text">检查中...</span>
+        </div>
+      </div>
+
+<table id="ota-info-table" style="width:100%;border-collapse:collapse;table-layout:fixed;">
+        <col style="width:50%;">
+        <col style="width:50%;">
+        <tr style="border-bottom:1px solid var(--border);">
+          <td style="padding:10px 8px;color:var(--dim);font-size:14px;text-align:center;" id="label-cur-ver">当前版本</td>
+          <td style="padding:10px 8px;color:var(--text);font-size:14px;text-align:center;" id="ota-current-ver">1.0.0</td>
+        </tr>
+        <tr id="ota-new-ver-row" style="border-bottom:1px solid var(--border);">
+          <td style="padding:10px 8px;color:var(--dim);font-size:14px;text-align:center;" id="label-new-ver">最新版本</td>
+          <td style="padding:10px 8px;color:var(--text);font-size:14px;text-align:center;" id="ota-new-ver"></td>
+        </tr>
+        <tr id="ota-content-row" style="border-bottom:1px solid var(--border); display: none;">
+          <td style="padding:10px 8px;color:var(--dim);font-size:14px;text-align:center;vertical-align:top;" id="label-ota-content">更新内容</td>
+          <td style="padding:10px 8px;color:var(--text);font-size:14px;text-align:center;word-break:break-word;line-height:1.4;" id="ota-content"></td>
+        </tr>
+        <tr id="ota-desc-row" style="border-bottom:1px solid var(--border);">
+          <td style="padding:10px 8px;color:var(--dim);font-size:14px;text-align:center;vertical-align:top;" id="label-ota-desc">更新说明</td>
+          <td style="padding:10px 8px;color:var(--text);font-size:14px;text-align:center;word-break:break-word;line-height:1.4;" id="ota-desc"></td>
+        </tr>
+      </table>
+
+      <div id="ota-progress-area" style="display: none; margin-top: 14px;">
+        <!-- 固件进度 -->
+        <div id="ota-fw-progress-row" class="mb-12">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 12px; color: var(--dim);">
+            <span id="ota-fw-label" data-i18n="otaFirmwarePhase">正在更新系统固件...</span>
+            <span id="ota-fw-pct">0%</span>
+          </div>
+          <div style="width: 100%; height: 6px; background: var(--input); border-radius: 3px; overflow: hidden;">
+            <div id="ota-fw-bar" style="height: 100%; width: 0%; background: var(--primary); border-radius: 3px; transition: width 0.3s ease;"></div>
+          </div>
+        </div>
+        <!-- 网页文件进度 -->
+        <div id="ota-spiffs-progress-row" style="display: none;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 12px; color: var(--dim);">
+            <span id="ota-spiffs-label" data-i18n="otaSpiffsPhase">正在更新网页固件...</span>
+            <span id="ota-spiffs-pct">0%</span>
+          </div>
+          <div style="width: 100%; height: 6px; background: var(--input); border-radius: 3px; overflow: hidden;">
+            <div id="ota-spiffs-bar" style="height: 100%; width: 0%; background: var(--primary); border-radius: 3px; transition: width 0.3s ease;"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="ota-success-area" style="display: none; margin-top: 16px;">
+        <div style="text-align: center; color: #00c853; font-size: 15px; font-weight: 600;" id="ota-success-title">
+          更新成功
+        </div>
+        <div style="text-align: center; color: var(--dim); font-size: 13px; margin-top: 8px; line-height: 1.6;" id="ota-success-hint">
+          设备即将重启...<br>
+          网页将在 <span id="ota-countdown" class="text-primary fw-600">3</span> 秒后自动刷新
+        </div>
+      </div>
+
+      <div id="ota-error-area" style="display: none; margin-top: 14px;">
+        <div style="text-align: center; color: #ff5252; font-size: 15px; font-weight: 600;">
+          更新失败
+        </div>
+        <div style="text-align: center; color: var(--dim); font-size: 13px; margin-top: 8px; line-height: 1.6;" id="ota-error-msg">
+        </div>
+      </div>
+
+    </div>
+
+    <div class="flex-row">
+      <button type="button" class="btn secondary flex-1" id="ota-dialog-close">关闭</button>
+      <button type="button" class="btn secondary flex-1" id="ota-dialog-check">检查更新</button>
+      <button type="button" class="btn flex-1" id="ota-dialog-update">立即更新</button>
+      <button type="button" class="btn error flex-1" id="ota-dialog-cancel" style="display: none;">取消更新</button>
+    </div>
+  </div>
+</div>
+
+<script src="index.js"></script>
+</body>
+</html>

@@ -1,0 +1,837 @@
+/* === 主题变量 === */
+:root {
+  --primary: #00bcd4;
+  --primary-dark: #0097a7;
+  --accent: #00e5ff;
+  --bg: #0f0f0f;
+  --card: #1a1a1a;
+  --input: #242424;
+  --border: #2a2a2a;
+  --text: #f5f5f5;
+  --dim: #888;
+  --shadow: none;
+  --t-fast: 0.15s;
+  --t-base: 0.25s;
+}
+[data-theme="light"] {
+  --primary: #0066ff;
+  --primary-dark: #0052cc;
+  --accent: #0066ff;
+  --bg: #f0f2f5;
+  --card: #fff;
+  --input: #f7f7f7;
+  --border: #ccc;
+  --text: #000;
+  --dim: #666;
+  --shadow: 0 2px 12px rgba(0,0,0,0.08);
+}
+
+/* === 基础样式 === */
+* { box-sizing: border-box; margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font: 14px/1.5 system-ui, -apple-system, sans-serif;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* === 布局 === */
+.layout {
+  display: flex;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* === 侧边栏 === */
+.sidebar {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 240px;
+  background: var(--bg);
+  padding: 24px 16px;
+  border-right: 1px solid var(--border);
+  transform: translateX(-100%);
+  transition: transform var(--t-base) cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 100;
+  height: 100vh;
+  height: 100dvh;
+  overflow-y: auto;
+}
+.sidebar.open { transform: translateX(0); }
+.sidebar-brand {
+  display: block;
+  width: 100%;
+  max-width: 160px;
+  margin: 0 auto 20px;
+  padding: 10px 16px 14px;
+  border-bottom: 1px solid var(--border);
+  cursor: default;
+}
+/* Dev mode badge over logo */
+.sidebar-brand-wrapper {
+  position: relative;
+  display: block;
+  width: 100%;
+  max-width: 160px;
+  margin: 0 auto 20px;
+}
+.sidebar-brand-wrapper .sidebar-brand {
+  margin: 0;
+  border-bottom: none;
+  padding-bottom: 14px;
+}
+.dev-badge {
+  display: none;
+  position: absolute;
+  bottom: 18%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #e67e22;
+  color: #fff;
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 8px;
+  pointer-events: none;
+}
+.dev-badge.visible { display: block; }
+.sidebar-item { margin-bottom: 20px; }
+.sidebar-label {
+  display: block;
+  font-size: 10px;
+  color: var(--dim);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+.sidebar-btn {
+  width: 100%;
+  padding: 10px 12px;
+  background: var(--input);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 10px;
+  cursor: pointer;
+  text-align: center;
+  font-size: 13px;
+  transition: background var(--t-fast);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  position: relative;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+.sidebar-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+.network-icon {
+  transform: scale(1.1);
+}
+.sidebar-btn[data-page="other"] .sidebar-icon {
+  transform: scale(0.95);
+}
+
+/* 模式指示器（圆点）：当前 USB 模式匹配的功能页按钮上显示 */
+.mode-indicator {
+  display: none;
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+.mode-indicator svg {
+  width: 14px;
+  height: 14px;
+  fill: var(--primary);
+  display: block;
+  transform: scale(0.9);
+  filter: drop-shadow(0 0 3px rgba(0,0,0,0.15));
+}
+.sidebar-btn.mode-active .mode-indicator {
+  display: block;
+}
+/* 按钮锁定（禁用）时隐藏指示器 */
+.sidebar-btn.page-locked .mode-indicator {
+  display: none !important;
+}
+
+.sidebar-btn:last-child {
+  margin-bottom: 0;
+}
+.sidebar-btn .ota-badge {
+  color: #ff4444;
+  font-size: 10px;
+  animation: ota-blink 1.2s infinite;
+}
+.sidebar-btn .ota-badge.hidden {
+  display: none;
+}
+@keyframes ota-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+#btn-firmware {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.sidebar-btn:hover { background: var(--border); }
+.sidebar-btn:active {
+  /* 触控设备上 :active 伪类可能残留，置为与普通态一致防止视觉残留 */
+  background: var(--input);
+  border-color: var(--border);
+  color: var(--text);
+}
+.sidebar-btn:active .sidebar-icon { fill: #888; }
+.sidebar-btn.active {
+  background: rgba(0, 188, 212, 0.12);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.sidebar-btn.active .sidebar-icon {
+  fill: var(--primary);
+}
+.sidebar-btn.primary {
+  background: var(--primary);
+  color: #fff;
+}
+.sidebar-btn.primary:hover { background: var(--primary-dark); opacity: 0.9; }
+
+/* 侧边栏分割线 */
+.sidebar-divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 8px 0;
+  opacity: 0.5;
+}
+
+/* 侧边栏分组标题（如 "系统功能"、"USB功能"、"其他功能"）
+   标题在左侧，右侧是分割线：标题 ———————————
+   使用 ::after 伪元素在标题右侧绘制横线 */
+.sidebar-section-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--dim);
+  padding: 6px 8px;
+  letter-spacing: 1px;
+  text-transform: none;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+}
+.sidebar-section-title::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+  opacity: 0.5;
+}
+
+/* === 抽屉把手 === */
+.drawer-handle {
+  position: fixed;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 50px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-left: 0;
+  border-radius: 0 10px 10px 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary);
+  z-index: 101;
+  transition: left var(--t-base) cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 12px;
+  box-shadow: 2px 0 10px rgba(0,0,0,.1);
+}
+.sidebar.open ~ .drawer-handle { left: 240px; }
+
+/* === 主内容区 === */
+.main {
+  flex: 1;
+  padding: 20px;
+  width: 100%;
+  position: relative;
+  transition: margin-left var(--t-base) cubic-bezier(0.4, 0, 0.2, 1), width var(--t-base) cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#network-page {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: relative;
+  min-height: 300px;
+  height: 100%;
+}
+
+#other-page {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* === 手风琴卡片 === */
+.accordion {
+  background: var(--card);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  width: 100%;
+  max-width: 360px;
+  margin: 0 auto 12px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+
+.accordion-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  cursor: pointer;
+  background: linear-gradient(90deg, var(--primary), var(--primary-dark));
+  transition: all var(--t-fast);
+}
+
+.accordion-header:hover {
+  opacity: 0.9;
+}
+
+.accordion-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.accordion-arrow {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.8);
+  transition: transform var(--t-base);
+}
+
+.accordion-arrow.collapsed {
+  transform: rotate(-90deg);
+}
+
+.accordion-content {
+  font-size: 13px;
+  padding: 12px;
+  transition: all var(--t-base);
+}
+.accordion-content .sidebar-item {
+  margin-bottom: 12px;
+}
+.accordion-content .sidebar-item:last-child {
+  margin-bottom: 0;
+}
+
+.accordion-content.collapsed {
+  max-height: 0;
+  padding: 0 12px;
+  overflow: hidden;
+}
+
+.accordion-content.collapsed * {
+  display: none;
+}
+
+/* === WiFi列表 === */
+.wifi-list {
+  background: var(--input);
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+.wifi-list:not(:has(.loading-text)) {
+  display: block;
+}
+
+/* 已保存WiFi列表样式 */
+#saved-view .wifi-list {
+  padding: 0;
+}
+
+#saved-view .wifi-item {
+  padding: 14px 16px;
+  height: 48px;
+  box-sizing: border-box;
+}
+
+#saved-view .wifi-item:first-child {
+  border-radius: 14px 14px 0 0;
+}
+
+#saved-view .wifi-item:last-child {
+  border-radius: 0 0 14px 14px;
+  border-bottom: 0;
+}
+
+/* 扫描WiFi列表特有样式 */
+#scan-view .wifi-list {
+  height: 145px;
+  overflow-y: auto;
+  padding: 0;
+}
+
+.wifi-item {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: background var(--t-fast);
+}
+.wifi-item:last-child { border-bottom: 0; }
+.wifi-item:hover { background: rgba(0,188,212,.05); }
+.wifi-item.selected {
+  background: rgba(0,188,212,.1);
+  border-left: 3px solid var(--primary);
+}
+.wifi-item.selected .wifi-name { color: var(--primary); }
+.wifi-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-right: 12px;
+}
+
+/* === 信号强度 === */
+.signal {
+  width: 20px;
+  height: 14px;
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.signal span {
+  width: 3px;
+  background: var(--border);
+  border-radius: 1px;
+}
+.signal span.active { background: var(--primary); }
+
+/* === 表单 === */
+input[type="text"],
+input[type="password"] {
+  width: 100%;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  background: var(--input);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--text);
+  outline: none;
+  font-size: 14px;
+  transition: border-color var(--t-fast);
+}
+input:focus { border-color: var(--primary); }
+input::placeholder { color: var(--dim); }
+input.error::placeholder { color: #f44336; }
+
+.password-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.password-wrap input { padding-right: 44px; margin-bottom: 0; }
+.password-toggle {
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  color: var(--dim);
+  cursor: pointer;
+  padding: 4px;
+  line-height: 0;
+}
+.password-toggle:hover { color: var(--primary); }
+
+/* 隐藏浏览器自带的密码显示按钮（Edge/Chrome）*/
+input[type="password"]::-ms-reveal { display: none; }
+input[type="password"]::-webkit-credentials-auto-fill-button { display: none; }
+
+/* === 按钮 === */
+.btn {
+  width: 100%;
+  padding: 14px;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  color: var(--text);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  margin-top: 12px;
+  background: var(--input);
+  transition: all var(--t-fast);
+}
+.btn:hover:not(:disabled) {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: rgba(0, 188, 212, 0.05);
+}
+.btn:active:not(:disabled) { transform: scale(0.98); }
+.btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn.success {
+  border-color: #00c853;
+  color: #00c853;
+  background: rgba(0, 200, 83, 0.05);
+}
+.btn.success:hover:not(:disabled) {
+  border-color: #00a344;
+  color: #00a344;
+  background: rgba(0, 163, 68, 0.1);
+}
+.btn.error {
+  border-color: #f44336;
+  color: #f44336;
+  background: rgba(244, 67, 54, 0.05);
+}
+.btn.error:hover:not(:disabled) {
+  border-color: #c62828;
+  color: #c62828;
+  background: rgba(198, 40, 40, 0.1);
+}
+.btn.info {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: rgba(0, 188, 212, 0.05);
+}
+.btn.info:hover:not(:disabled) {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: rgba(0, 188, 212, 0.1);
+}
+
+.btn.secondary {
+  border-color: var(--border);
+  color: var(--text);
+  background: var(--input);
+}
+.btn.secondary:hover:not(:disabled) {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: rgba(0, 188, 212, 0.05);
+}
+.btn.secondary:active:not(:disabled) { transform: scale(0.98); }
+
+.btn.danger {
+  border-color: #e74c3c;
+  color: #e74c3c;
+  background: rgba(231, 76, 60, 0.05);
+}
+.btn.danger:hover:not(:disabled) {
+  border-color: #c0392b;
+  color: #c0392b;
+  background: rgba(231, 76, 60, 0.12);
+}
+
+.btn.small {
+  padding: 6px 12px;
+  font-size: 12px;
+  margin: 0 4px 0 0;
+  display: inline-block;
+  width: auto;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+/* === 表格/空提示 === */
+.empty-hint {
+  text-align: center;
+  color: var(--dim);
+  padding: 20px 0;
+  font-size: 13px;
+  display: none;
+}
+
+/* === 结果卡片 === */
+.result-card {
+  background: var(--input);
+  border-radius: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+}
+
+.status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--dim);
+}
+
+.status-indicator.idle {
+  background: var(--dim);
+}
+
+.status-indicator.connecting {
+  background: var(--primary);
+}
+
+.status-indicator.connected {
+  background: #00c853;
+}
+
+.status-indicator.failed {
+  background: #f44336;
+}
+
+.result-label { display: block; color: var(--dim); font-size: 11px; font-weight: normal; }
+.result-value {
+  color: var(--primary);
+  font-family: 'SF Mono', Monaco, monospace;
+  font-weight: 600;
+  font-size: 14px;
+  word-break: break-all;
+  margin-top: 4px;
+  display: block;
+}
+/* === 工具类 === */
+.hidden { display: none !important; }
+
+/* --- 布局 --- */
+.flex-row { display: flex; gap: 12px; }
+.flex-1 { flex: 1; }
+.dialog-actions { display: flex; gap: 12px; justify-content: flex-end; }
+
+/* --- 间距 --- */
+.mt-0 { margin-top: 0; }
+.mt-12 { margin-top: 12px; }
+.mt-16 { margin-top: 16px; }
+.mb-12 { margin-bottom: 12px; }
+.mb-16 { margin-bottom: 16px; }
+.mb-20 { margin-bottom: 20px; }
+
+/* --- 文字 --- */
+.text-center { text-align: center; }
+.text-dim { color: var(--dim); }
+.text-primary { color: var(--primary); }
+.text-accent { color: var(--accent); }
+.break-all { word-break: break-all; }
+.fw-600 { font-weight: 600; }
+.loading-text {
+  text-align: center;
+  color: var(--dim);
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+.loading-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--border);
+  border-top: 2px solid var(--primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* === 响应式 - 平板 === */
+@media (min-width: 768px) {
+  .accordion { max-width: 400px; }
+  .sidebar.open ~ .main {
+    margin-left: 240px;
+    width: calc(100% - 240px);
+  }
+}
+
+/* === LED 总开关样式 === */
+.sidebar-item:has(.switch) {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.sidebar-item:has(.switch) .sidebar-label {
+  margin-bottom: 0;
+  flex-grow: 1;
+}
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+  flex-shrink: 0;
+}
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: var(--border);
+  transition: background-color var(--t-base);
+  border-radius: 24px;
+}
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: transform var(--t-base);
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0,0,0,.3);
+}
+.switch input:checked + .slider {
+  background-color: var(--primary);
+}
+.switch input:checked + .slider:before {
+  transform: translateX(20px);
+}
+
+/* === 动态功能页面 iframe（通用） === */
+.main:has([data-page-container]:not(.hidden)) {
+  padding: 0 !important;
+}
+[data-page-container] {
+  width: 100%;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+}
+[data-page-container].hidden { display: none; }
+[data-page-container] iframe {
+  width: 100%;
+  height: 100vh;
+  border: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* === 页面锁定（由 JS 根据 usbMode 判断，给按钮加 .page-locked） === */
+.sidebar-btn.page-locked {
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+/* === 弹窗覆盖层（全局） === */
+.dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--t-base);
+}
+.dialog-overlay.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+.dialog-container {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 420px;
+  width: 90%;
+  transform: translateY(-20px);
+  transition: transform var(--t-base);
+}
+.dialog-overlay.show .dialog-container {
+  transform: translateY(0);
+}
+
+/* === 响应式 - 桌面 === */
+@media (min-width: 1024px) {
+  .main { padding: 40px; }
+  .accordion { max-width: 420px; }
+}
+
+/* === 断网全屏提示 === */
+.offline-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  z-index: 90;
+  animation: offlineFadeIn 0.4s ease;
+}
+.offline-overlay.hidden { display: none; }
+
+.offline-message {
+  text-align: center;
+  max-width: 320px;
+  padding: 40px 32px;
+}
+
+.offline-text {
+  font-size: 15px;
+  color: var(--dim);
+  line-height: 1.8;
+  margin: 0;
+  letter-spacing: 0.02em;
+}
+
+@keyframes offlineFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* === 网络页面断网内容 === */
+#network-offline-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+#network-offline-content.hidden { display: none; }
+
+/* === 滚动条美化 === */
+.sidebar::-webkit-scrollbar,
+.wifi-list::-webkit-scrollbar {
+  width: 6px;
+}
+.sidebar::-webkit-scrollbar-track,
+.wifi-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+.sidebar::-webkit-scrollbar-thumb,
+.wifi-list::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+.sidebar::-webkit-scrollbar-thumb:hover,
+.wifi-list::-webkit-scrollbar-thumb:hover {
+  background: var(--dim);
+}

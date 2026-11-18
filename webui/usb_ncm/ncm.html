@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<style>
+:root {
+  --primary:#0066cc;--primary-dark:#0052a3;--bg:#f5f7fa;--card:#ffffff;
+  --border:#e0e0e0;--text:#333;--dim:#666;
+}
+[data-theme="dark"] {
+  --primary:#00bcd4;--primary-dark:#0097a7;--bg:#0f0f0f;--card:#1a1a1a;
+  --border:#2a2a2a;--text:#f5f5f5;--dim:#888;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;width:100%;overflow:hidden}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  background:var(--bg);color:var(--text);
+  display:flex;align-items:center;justify-content:center;
+  min-height:100%;}
+.wrap{text-align:center;padding:0 20px;animation:fadeUp .6s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.icon{margin-bottom:28px;animation:pulse 2.2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.55;transform:scale(1)}50%{opacity:1;transform:scale(1.06)}}
+.icon svg{width:96px;height:96px;fill:var(--primary);display:block;margin:0 auto}
+.title{font-size:22px;font-weight:600;margin:0 0 8px}
+.desc{font-size:14px;color:var(--dim);margin:0}
+.lang-hide{display:none}
+</style>
+</head>
+<body data-theme="dark">
+<div class="wrap">
+  <div class="icon"><svg viewBox="0 0 1024 1024"><path d="M361.728 928.0512h428.288a26.0096 26.0096 0 0 0 25.65632-25.74848V655.4624a25.6512 25.6512 0 0 0-25.4976-25.79968H361.6768v298.38848h0.0512z m-85.504 15.5136H74.0864v-329.4208h202.0352v-61.2864H790.016c56.576 0 102.45632 45.81888 102.45632 102.59968v246.78912c-0.11264 56.54016-45.85984 102.3744-102.4 102.59968H276.1216v-61.2864h0.1024z m0-76.8v-175.8208H150.8864v175.8208h125.3376z m-28.0576-420.7104a421.44768 421.44768 0 0 1 123.8016-295.424 421.46816 421.46816 0 0 1 295.424-123.8528v65.1776a355.88608 355.88608 0 0 0-249.49248 104.5504A355.87584 355.87584 0 0 0 313.2928 446.0544H248.1664z m118.0672 0a303.63648 303.63648 0 0 1 89.1904-211.968 303.616 303.616 0 0 1 211.968-89.1904v63.6416a240.14336 240.14336 0 0 0-166.912 70.5536 240.13824 240.13824 0 0 0-70.6048 166.912H366.2336v0.0512z m130.4576 0c0.3584-42.8032 16.896-85.504 49.5104-118.1184a168.73984 168.73984 0 0 1 121.1904-49.5616v64.768a104.15616 104.15616 0 0 0-75.3664 30.5664c-20.01408 19.968-30.20288 46.08-30.61248 72.3456H496.6912z m205.1072 37.4272c-19.82464 19.83488-51.968 19.84512-71.808 0.0256-19.83488-19.82464-19.85024-51.97312-0.0256-71.808 19.82464-19.84 51.97312-19.84512 71.80288-0.0256 19.84 19.81952 19.85024 51.97312 0.03072 71.808z"/></svg></div>
+  <h1 class="title" data-i18n-t="zh">已启动无线网卡模式</h1>
+  <h1 class="title lang-hide" data-i18n-t="en">Wireless NIC Mode Activated</h1>
+  <p class="desc" data-i18n-d="zh">此模式下网页将断开连接</p>
+  <p class="desc lang-hide" data-i18n-d="en">Web page will be disconnected</p>
+  <p class="desc" data-i18n-d="zh">长按按钮 3 秒切回网盘模式</p>
+  <p class="desc lang-hide" data-i18n-d="en">Long-press the button for 3s to return to storage mode</p>
+</div>
+<script>
+(function(){
+  var savedTheme=localStorage.getItem('theme');
+  if(savedTheme)document.body.dataset.theme=savedTheme;
+  var lang=localStorage.getItem('lang')||(navigator.language.slice(0,2)==='zh'?'zh':'en');
+  var applyLang=function(){
+    document.querySelectorAll('[data-i18n-t]').forEach(function(el){
+      el.classList.toggle('lang-hide',el.dataset.i18nT!==lang);
+    });
+    document.querySelectorAll('[data-i18n-d]').forEach(function(el){
+      el.classList.toggle('lang-hide',el.dataset.i18nD!==lang);
+    });
+  };
+  applyLang();
+  var bcL=new BroadcastChannel('superdongle_lang');
+  bcL.onmessage=function(e){lang=e.data;localStorage.setItem('lang',e.data);applyLang()};
+  var bcT=new BroadcastChannel('superdongle_theme');
+  bcT.onmessage=function(e){document.body.dataset.theme=e.data;localStorage.setItem('theme',e.data)};
+  window.addEventListener('storage',function(e){
+    if(e.key==='lang'&&e.newValue){lang=e.newValue;applyLang()}
+    if(e.key==='theme'&&e.newValue)document.body.dataset.theme=e.newValue
+  });
+})();
+</script>
+</body>
+</html>

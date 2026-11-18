@@ -1,0 +1,3701 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-i18n="pageTitle">SuperDongle - 文件管理</title>
+    <style>
+        /* === 主题变量 === */
+        :root {
+            --primary: #0066cc;
+            --primary-dark: #0052a3;
+            --bg: #f5f7fa;
+            --card: #ffffff;
+            --border: #e0e0e0;
+            --text: #333333;
+            --dim: #666666;
+            --hover: #f5f5f5;
+            --success: #4CAF50;
+            --danger: #f44336;
+        }
+        [data-theme="dark"] {
+            --primary: #00bcd4;
+            --primary-dark: #0097a7;
+            --bg: #0f0f0f;
+            --card: #1a1a1a;
+            --border: #2a2a2a;
+            --text: #f5f5f5;
+            --dim: #888888;
+            --hover: #242424;
+            --success: #66bb6a;
+            --danger: #ef5350;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            height: 100vh;
+            height: 100dvh;
+            overflow: hidden;
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        /* === 整体布局容器 === */
+        .app-container {
+            display: flex;
+            height: 100vh;
+            height: 100dvh;
+            width: 100%;
+        }
+
+        /* === 右侧侧边栏 === */
+        .sidebar {
+            position: fixed;
+            right: 0;
+            top: 0;
+            width: 240px;
+            background: var(--card);
+            padding: 20px 16px;
+            border-left: 1px solid var(--border);
+            transform: translateX(100%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 100;
+            height: 100vh;
+            height: 100dvh;
+            overflow-y: auto;
+        }
+        .sidebar.open { transform: translateX(0); }
+        
+        /* === 抽屉把手 === */
+        .drawer-handle {
+            position: fixed;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 24px;
+            height: 50px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-right: 0;
+            border-radius: 10px 0 0 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary);
+            z-index: 101;
+            transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 12px;
+            box-shadow: -2px 0 10px rgba(0,0,0,0.1);
+        }
+        .sidebar.open ~ .drawer-handle { right: 240px; }
+        .sidebar-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 24px;
+            letter-spacing: 1px;
+            text-align: center;
+            padding: 14px 16px;
+            background: transparent;
+            border: none;
+            border-bottom: 1px solid var(--border);
+            border-radius: 0;
+            text-transform: uppercase;
+        }
+        .sidebar-item {
+            margin-bottom: 20px;
+        }
+        .sidebar-btn {
+            width: 100%;
+            padding: 12px 14px;
+            background: var(--hover);
+            border: 1px solid var(--border);
+            color: var(--text);
+            border-radius: 10px;
+            cursor: pointer;
+            text-align: center;
+            font-size: 13px;
+            transition: background .2s;
+        }
+        .sidebar-btn:hover:not(:disabled) { background: var(--border); }
+        .sidebar-btn:disabled { opacity: .6; cursor: not-allowed; }
+        /* === 自定义对话框样式 === */
+        .dialog-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .dialog-overlay.show {
+            opacity: 1;
+        }
+        .dialog-container {
+            background: var(--card);
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            width: 90%;
+            max-width: 400px;
+            overflow: hidden;
+            transform: translateY(-20px);
+            transition: transform 0.3s ease;
+        }
+        .dialog-overlay.show .dialog-container {
+            transform: translateY(0);
+        }
+        .dialog-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+        .dialog-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text);
+            margin: 0;
+        }
+        .dialog-body {
+            padding: 20px;
+        }
+        .dialog-content {
+            font-size: 14px;
+            color: var(--dim);
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+        .dialog-input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 14px;
+            margin-top: 10px;
+            display: none;
+            background: var(--hover);
+            color: var(--text);
+        }
+        .dialog-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        .dialog-footer {
+            padding: 0 20px 20px;
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+        .mini-btn {
+            padding: 8px 16px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--card);
+            color: var(--text);
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .mini-btn:hover {
+            background: var(--hover);
+        }
+        .mini-btn.primary {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+        .mini-btn.primary:hover {
+            background: var(--primary-dark);
+        }
+
+        /* === 预览弹窗样式 === */
+        #preview-overlay {
+            background: rgba(0, 0, 0, 0.4);
+        }
+        
+        .preview-container {
+            background: var(--card);
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            width: 90%;
+            max-width: 700px;
+            height: 80vh;
+            max-height: 600px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transform: translateY(-20px);
+            transition: transform 0.3s ease;
+        }
+        
+        .dialog-overlay.show .preview-container {
+            transform: translateY(0);
+        }
+        
+        .preview-content {
+            flex: 3;
+            background: var(--hover);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .preview-content img,
+        .preview-content video,
+        .preview-content audio {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+        
+        .preview-text-area {
+            width: 100%;
+            height: 100%;
+            padding: 20px;
+            box-sizing: border-box;
+            background: var(--card);
+            overflow: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+            font-size: 14px;
+            line-height: 1.6;
+            color: var(--text);
+        }
+        
+        .preview-unsupported {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            text-align: center;
+        }
+        
+        .preview-unsupported .preview-icon {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 20px;
+            opacity: 0.6;
+        }
+        
+        .preview-unsupported .preview-text {
+            color: var(--dim);
+            font-size: 14px;
+        }
+        
+        .preview-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            border-top: 1px solid var(--border);
+        }
+        
+        /* === 上传弹窗样式 === */
+        .upload-dialog-container {
+            max-width: 450px;
+        }
+        
+        .upload-dialog-area {
+            background: var(--card);
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            padding: 40px 30px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s ease;
+        }
+        
+        .upload-dialog-area:hover {
+            border-color: var(--primary);
+            background: rgba(0, 188, 212, 0.05);
+        }
+        
+        .upload-dialog-area.dragover {
+            border-color: var(--primary);
+            background: rgba(0, 188, 212, 0.1);
+        }
+        
+        .upload-dialog-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .upload-dialog-area input[type="file"] {
+            display: none;
+        }
+        .upload-progress-item {
+            position: relative;
+            overflow: hidden;
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--border);
+        }
+        .upload-progress-item:last-child {
+            border-bottom: none;
+        }
+        .upload-progress-bg {
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            z-index: 0;
+            transition: width 0.2s;
+            background: rgba(0, 102, 204, 0.25);
+        }
+        .upload-progress-item.success .upload-progress-bg {
+            background: rgba(102, 187, 106, 0.25);
+        }
+        .upload-progress-item.error .upload-progress-bg {
+            background: rgba(239, 83, 80, 0.3);
+        }
+        .upload-progress-row {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .upload-file-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .upload-file-name {
+            font-size: 13px;
+            color: var(--text);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 200px;
+        }
+        .upload-file-meta {
+            font-size: 11px;
+            color: var(--dim);
+            margin-top: 3px;
+        }
+        .upload-status-label {
+            font-size: 12px;
+            font-weight: 500;
+            padding: 2px 8px;
+            border-radius: 4px;
+            white-space: nowrap;
+        }
+        .upload-status-label.success {
+            background: rgba(102, 187, 106, 0.2);
+            color: var(--success);
+        }
+        .upload-status-label.error {
+            background: rgba(239, 83, 80, 0.2);
+            color: var(--danger);
+        }
+        
+        .upload-status-label {
+            background: rgba(0, 188, 212, 0.2);
+            color: var(--primary);
+        }
+        
+        .upload-status-container {
+            display: flex;
+            gap: 6px;
+        }
+        
+        /* === 开关样式 === */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+        }
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--border);
+            transition: .4s;
+            border-radius: 24px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background: linear-gradient(90deg, var(--primary), var(--primary-dark));
+        }
+        input:focus + .slider {
+            box-shadow: 0 0 1px var(--primary);
+        }
+        input:checked + .slider:before {
+            transform: translateX(20px);
+        }
+
+        /* === 左侧主区域 === */
+        .main-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            transition: margin-right 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* === 顶部工具栏 === */
+        .top-bar {
+            background: var(--card);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            margin-bottom: 5px;
+        }
+        .breadcrumb-row {
+            padding: 5px 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+        }
+        .breadcrumb {
+            flex: 1;
+            padding: 6px 12px;
+            background: var(--hover);
+            border-radius: 6px;
+            font-size: 13px;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            overflow-x: auto;
+            white-space: nowrap;
+            scrollbar-width: none;
+        }
+        .breadcrumb::-webkit-scrollbar {
+            display: none;
+        }
+        .crumb {
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+        .crumb:hover {
+            background: rgba(0, 188, 212, 0.15);
+            color: var(--primary);
+        }
+        .crumb-separator {
+            color: var(--dim);
+            pointer-events: none;
+        }
+        .toolbar-row {
+            display: flex;
+            align-items: center;
+            padding: 6px 16px;
+            gap: 12px;
+            justify-content: space-between;
+            overflow-x: auto;
+            white-space: nowrap;
+            scrollbar-width: none;
+        }
+        .toolbar-row::-webkit-scrollbar {
+            display: none;
+        }
+        .toolbar-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn {
+            padding: 8px 16px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--card);
+            cursor: pointer;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+            color: var(--text);
+        }
+        .btn:hover { background: var(--hover); border-color: var(--border); }
+        .btn.primary {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+        .btn.primary:hover { background: var(--primary-dark); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn.icon-btn { padding: 8px; }
+        .btn.icon-btn.wide { padding: 8px 16px; }
+        .btn .btn-count { font-size: 13px; margin-left: 2px; }
+        .btn svg { display: inline-block; transform-origin: center; }
+
+        /* 刷新旋转动画 */
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .btn.spinning svg { animation: spin 0.5s ease-in-out 1; transform-origin: center; }
+
+        /* 自定义tooltip */
+        .custom-tooltip {
+            position: fixed;
+            background: var(--card);
+            color: var(--text);
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            z-index: 9999;
+            pointer-events: none;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+            max-width: 300px;
+            word-wrap: break-word;
+            opacity: 0;
+            transform: translateY(8px);
+            transition: opacity 0.15s, transform 0.15s;
+            border: 1px solid var(--border);
+        }
+        .custom-tooltip.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .custom-tooltip strong {
+            display: block;
+            font-size: 14px;
+            margin-bottom: 4px;
+            color: var(--text);
+        }
+        .custom-tooltip br {
+            display: block;
+            content: '';
+            margin: 2px 0;
+        }
+
+        /* 右键菜单 */
+        #context-menu {
+            position: fixed;
+            z-index: 3000;
+            background: var(--card);
+            border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+            display: none;
+            min-width: 130px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+        #context-menu.visible {
+            display: block;
+        }
+        .menu-item {
+            padding: 10px 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--text);
+            transition: background 0.12s;
+            border-bottom: 1px solid var(--border);
+        }
+        .menu-item:last-child {
+            border-bottom: none;
+        }
+        .menu-item:hover {
+            background: rgba(0, 188, 212, 0.15);
+        }
+        .menu-item:active {
+            background: rgba(0, 188, 212, 0.25);
+        }
+        .menu-item-icon {
+            width: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .menu-item.disabled {
+            color: var(--dim);
+            cursor: not-allowed;
+        }
+        .menu-item.disabled:hover {
+            background: transparent;
+        }
+        .menu-item.disabled:active {
+            background: transparent;
+        }
+
+        /* 文件区域加载态 */
+        .file-area.loading .file-grid { filter: brightness(0.85); opacity: 0.7; transition: all 0.3s; }
+
+        /* === 右侧文件区域 === */
+        .file-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px 20px 20px 20px;
+            user-select: none;
+        }
+        .file-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 16px;
+        }
+        .file-card {
+            background: transparent;
+            border: 1px solid transparent;
+            border-radius: 10px;
+            padding: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+        .file-card:hover {
+            border-color: var(--primary);
+            background: rgba(0, 188, 212, 0.05);
+        }
+        .file-card.selected {
+            border-color: var(--primary);
+            background: rgba(0, 188, 212, 0.1);
+        }
+        .file-card.drag-selected {
+            border-color: var(--primary);
+            background: rgba(0, 188, 212, 0.1);
+        }
+        .file-card.drag-selected .file-checkbox {
+            opacity: 1;
+        }
+        .file-checkbox {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .file-card:hover .file-checkbox,
+        .file-card.selected .file-checkbox {
+            opacity: 1;
+        }
+        /* 框选矩形 */
+        .selection-box {
+            position: absolute;
+            border: 2px solid var(--primary);
+            background: rgba(0, 188, 212, 0.08);
+            pointer-events: none;
+            z-index: 100;
+            display: none;
+        }
+        .file-card .file-icon {
+            font-size: 64px;
+            margin-bottom: 4px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .file-svg {
+            width: 48px;
+            height: 48px;
+            vertical-align: middle;
+        }
+        .file-card .file-name {
+            font-size: 13px;
+            color: var(--text);
+            word-break: break-all;
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            max-height: 2.8em;
+        }
+        .file-card .file-meta {
+            font-size: 11px;
+            color: var(--dim);
+            margin-top: 6px;
+        }
+
+        /* === 文件卡片操作按钮 === */
+        .file-actions {
+            margin-top: 10px;
+            display: flex;
+            gap: 6px;
+            justify-content: center;
+        }
+        .file-actions .mini-btn {
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            background: var(--card);
+            cursor: pointer;
+            color: var(--text);
+        }
+        .file-actions .mini-btn:hover { background: var(--hover); }
+        .file-actions .mini-btn.download { border-color: var(--success); color: var(--success); }
+        .file-actions .mini-btn.delete { border-color: var(--danger); color: var(--danger); }
+
+        /* === 存储信息卡片 === */
+        .storage-card {
+            background: var(--card);
+            border-radius: 8px;
+            padding: 12px;
+            border: 1px solid var(--border);
+        }
+        .storage-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .storage-label {
+            font-size: 13px;
+            color: var(--dim);
+        }
+        .storage-percent {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--primary);
+        }
+        .storage-bar-container {
+            width: 100%;
+            height: 8px;
+            background: var(--hover);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+        .storage-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--primary-dark));
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+        .storage-details {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .storage-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+        }
+        .storage-key {
+            color: var(--dim);
+        }
+        .storage-value {
+            color: var(--text);
+            font-weight: 500;
+        }
+
+        /* === 通用通知弹窗 === */
+        .toast-popup {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 320px;
+            max-width: 90vw;
+            background: var(--card);
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            padding: 16px 20px;
+            z-index: 2000;
+            display: none;
+            opacity: 1;
+            border-left: 4px solid var(--dim);
+            transition: opacity 0.5s ease;
+            box-sizing: border-box;
+        }
+        .toast-popup.toast-success { border-left-color: var(--success); }
+        .toast-popup.toast-error { border-left-color: var(--danger); }
+        .toast-popup.toast-progress { border-left-color: var(--primary); }
+        .toast-popup.toast-info { border-left-color: #2196F3; }
+        .toast-popup.fade-out { opacity: 0; }
+        .toast-popup-title {
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--text);
+            margin-bottom: 6px;
+            word-break: break-all;
+            white-space: normal;
+        }
+        .toast-popup-message {
+            font-size: 13px;
+            color: var(--dim);
+            margin-bottom: 10px;
+            line-height: 1.4;
+            word-break: break-all;
+            white-space: normal;
+        }
+        .toast-popup-info {
+            font-size: 12px;
+            color: var(--dim);
+            margin-bottom: 8px;
+            word-break: break-all;
+            white-space: normal;
+        }
+        .toast-popup .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: var(--hover);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .toast-popup .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--primary), var(--primary-dark));
+            border-radius: 3px;
+            transition: width 0.2s;
+        }
+
+        /* === 平板/桌面响应式 === */
+        @media (min-width: 768px) {
+            .toast-popup {
+                width: 320px;
+                left: auto;
+                right: 20px;
+            }
+            .sidebar.open ~ .main-area {
+                margin-right: 240px;
+                width: calc(100% - 240px);
+            }
+        }
+
+        /* === 桌面进一步优化 === */
+        @media (min-width: 1024px) {
+            .file-area { padding: 20px 40px 40px 40px; }
+            .sidebar.open ~ .main-area {
+                margin-right: 240px;
+                width: calc(100% - 240px);
+            }
+        }
+
+
+    </style>
+</head>
+<body data-theme="light">
+    <!-- 整体布局容器 -->
+    <div class="app-container">
+        <!-- 右侧侧边栏 -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-title" data-i18n="sidebarTitleQuick"></div>
+            <div class="sidebar-item" style="display: flex; align-items: center; justify-content: space-between;">
+                <span style="font-size: 13px;" data-i18n="btnAutoRestart"></span>
+                <label class="switch">
+                    <input type="checkbox" id="auto-restart-toggle" checked onchange="toggleAutoRestart()">
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <div class="sidebar-title" style="margin-top: 24px;" data-i18n="sidebarStorage"></div>
+            <div class="sidebar-item" id="sidebar-storage">
+                <div style="font-size: 12px; opacity: 0.6;" data-i18n="storageLoading"></div>
+            </div>
+        </aside>
+
+        <!-- 左侧主区域 -->
+        <div class="main-area">
+            <!-- 顶部工具栏 -->
+            <div class="top-bar">
+                <!-- 第一行：面包屑 -->
+                <div class="breadcrumb-row">
+                    <div class="breadcrumb" id="breadcrumb">
+                        <span class="crumb" onclick="goToRoot()" data-i18n="crumbRoot"></span>
+                    </div>
+                </div>
+                <!-- 第二行：功能按钮 -->
+                <div class="toolbar-row">
+                    <div class="toolbar-group">
+                        <button class="btn icon-btn" id="btn-back" onclick="goToParentDir()" disabled title="上级目录" data-i18n-title="titleParentDir">
+                            <svg height="20px" viewBox="0 -960 960 960" width="20px" fill="currentColor"><path d="m313-440 224 224-57 56-320-320 320-320 57 56-224 224h487v80H313Z"/></svg>
+                        </button>
+                        <button class="btn icon-btn" onclick="onRefreshClick()" title="刷新" data-i18n-title="titleRefresh">
+                            <svg height="20px" viewBox="0 -960 960 960" width="20px" fill="currentColor"><path d="M480-160q-134 0-227-93t-93-227q0-134 93-227t227-93q69 0 132 28.5T720-690v-110h80v280H520v-80h168q-32-56-87.5-88T480-720q-100 0-170 70t-70 170q0 100 70 170t170 70q77 0 139-44t87-116h84q-28 106-114 173t-196 67Z"/></svg>
+                        </button>
+                        <button class="btn icon-btn" id="btn-select-all" onclick="toggleSelectAll()" title="全选/取消全选" data-i18n-title="titleSelectAll">
+                            <svg height="20px" viewBox="0 -960 960 960" width="20px" fill="currentColor"><path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h560q33 0 56.5 23.5T840-760v560q0 33-23.5 56.5T760-120H200Zm0-80h560v-560H200v560Z"/></svg>
+                        </button>
+                        <button class="btn icon-btn" id="btn-new-folder" onclick="createFolder()" title="新建文件夹" data-i18n-title="titleNewFolder">
+                            <svg height="20px" viewBox="0 -960 960 960" width="20px" fill="currentColor"><path d="M560-320h80v-80h80v-80h-80v-80h-80v80h-80v80h80v80ZM160-160q-33 0-56.5-23.5T80-240v-480q0-33 23.5-56.5T160-800h240l80 80h320q33 0 56.5-23.5T880-640v400q0 33-23.5 56.5T800-160H160Zm0-80h640v-400H447l-80-80H160v480Zm0 0v-480 480Z"/></svg>
+                        </button>
+                        <button class="btn icon-btn" id="upload-trigger-btn" onclick="openUploadDialog()" title="上传文件" data-i18n-title="titleUploadFile">
+                            <svg height="20px" viewBox="0 -960 960 960" width="20px" fill="currentColor"><path d="M440-320v-326L336-542l-56-58 200-200 200 200-56 58-104-104v326h-80ZM240-160q-33 0-56.5-23.5T160-240v-120h80v120h480v-120h80v120q0 33-23.5 56.5T720-160H240Z"/></svg>
+                        </button>
+                        <button class="btn icon-btn" id="btn-preview" disabled title="预览" data-i18n-title="titlePreview">
+                            <svg height="20px" viewBox="0 -960 960 960" width="20px" fill="currentColor"><path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h560q33 0 56.5 23.5T840-760v560q0 33-23.5 56.5T760-120H200Zm0-80h560v-480H200v480Zm133.5-124.5Q269-369 240-440q29-71 93.5-115.5T480-600q82 0 146.5 44.5T720-440q-29 71-93.5 115.5T480-280q-82 0-146.5-44.5Zm248.5-42q46-26.5 72-73.5-26-47-72-73.5T480-540q-56 0-102 26.5T306-440q26 47 72 73.5T480-340q56 0 102-26.5ZM480-440Zm42.5 42.5Q540-415 540-440t-17.5-42.5Q505-500 480-500t-42.5 17.5Q420-465 420-440t17.5 42.5Q455-380 480-380t42.5-17.5Z"/></svg>
+                        </button>
+                        <button class="btn icon-btn" id="btn-rename" onclick="renameFile()" disabled title="重命名" data-i18n-title="titleRename">
+                            <svg height="20px" viewBox="0 0 1024 1024" width="20px" fill="currentColor"><path d="M416 85.333333h170.581333a32 32 0 0 1 4.352 63.701334l-4.352 0.298666H533.333333v725.333334h53.12a32 32 0 0 1 31.701334 27.648l0.298666 4.352a32 32 0 0 1-27.648 31.701333l-4.352 0.298667H416a32 32 0 0 1-4.352-63.701334l4.352-0.298666H469.333333v-725.333334H416a32 32 0 0 1-31.701333-27.648L384 117.333333a32 32 0 0 1 27.648-31.701333L416 85.333333h170.581333H416z m362.496 127.872a138.794667 138.794667 0 0 1 138.666667 138.666667l0.170666 320.170667a138.624 138.624 0 0 1-130.730666 138.496l-7.936 0.213333h-202.453334v-64h204.928A74.624 74.624 0 0 0 853.333333 672.042667l-0.128-320.213334a74.794667 74.794667 0 0 0-74.752-74.666666h-202.24v-64h202.24z m-351.829333 0v64H224a74.666667 74.666667 0 0 0-74.666667 74.666667v320.170667c0 41.258667 33.450667 74.666667 74.666667 74.666666h202.453333v64H224A138.666667 138.666667 0 0 1 85.333333 672.042667V351.872a138.666667 138.666667 0 0 1 138.666667-138.666667H426.666667z"></path></svg>
+                        </button>
+                        <button class="btn icon-btn" id="btn-move" disabled title="移动" data-i18n-title="titleMove">
+                            <svg height="20px" viewBox="0 -960 960 960" width="20px" fill="currentColor"><path d="m488-400-65 65 56 56 161-161-161-161-56 56 65 65H320v80h168ZM160-160q-33 0-56.5-23.5T80-240v-480q0-33 23.5-56.5T160-800h240l80 80h320q33 0 56.5 23.5T880-640v400q0 33-23.5 56.5T800-160H160Zm0-80h640v-400H447l-80-80H160v480Zm0 0v-480 480Z"/></svg>
+                        </button>
+                        <button class="btn icon-btn" id="btn-download" onclick="downloadSelectedFiles()" disabled style="color: #4CAF50; border-color: #4CAF50;">
+                            <svg height="20px" viewBox="0 -960 960 960" width="20px" fill="#4CAF50"><path d="M480-320 280-520l56-58 104 104v-326h80v326l104-104 56 58-200 200ZM240-160q-33 0-56.5-23.5T160-240v-120h80v120h480v-120h80v120q0 33-23.5 56.5T720-160H240Z"/></svg>
+                            <span class="btn-count" id="download-count"></span>
+                        </button>
+                        <button class="btn icon-btn" id="btn-delete" onclick="deleteSelectedFiles()" disabled style="color: var(--danger); border-color: var(--danger);">
+                            <svg height="20px" viewBox="0 -960 960 960" width="20px" fill="var(--danger)"><path d="M280-120q-33 0-56.5-23.5T200-200v-520h-40v-80h200v-40h240v40h200v80h-40v520q0 33-23.5 56.5T680-120H280Zm400-600H280v520h400v-520ZM360-280h80v-360h-80v360Zm160 0h80v-360h-80v360ZM280-720v520-520Z"/></svg>
+                            <span class="btn-count" id="delete-count"></span>
+                        </button>
+                    </div>
+                    <button class="btn icon-btn" id="restart-btn" onclick="restartMSC(true)" disabled title="重启USB" data-i18n-title="titleRestartUsb">
+                        <svg viewBox="200 200 400 400" height="20px" width="20px" fill="currentColor"><path d="M342 190q-19 4-27 23l-2 4v39l-1 38-3 1q-7 1-14 6-12 8-17 22l-1 4-1 123c0 137 0 128 4 138l8 10q8 8 19 11l93 1 93-1q11-2 19-11l7-10c5-10 5-1 5-136 0-133 0-126-4-134q-9-19-32-24h-1v-38l-1-41q-6-17-24-24l-60-1zm116 23 5 7 1 38v36H335l1-37v-38l1-2q3-3 8-4zm33 105q6 3 8 8c3 4 3 11 2 130v118l-1 4q-4 6-10 9H311q-8-3-11-11l-1-124V330l2-3q3-7 9-9c4-2 5-2 91-2h87z"/><path d="M367 251v14h23v-23h-23zm43 2v12h23v-23h-23zm-24 124q-33 8-49 37a72 72 0 0 0 4 72q18 26 47 31c22 4 47-3 60-17q8-8 4-15t-11-6l-8 5q-14 13-32 12a48 48 0 0 1-50-49c0-10 2-15 6-23q8-15 26-23c6-2 6-2 17-2l15 1q14 5 23 15l3 4h-4q-5 0-7 2l-2 6q0 5 3 6l2 2h37l3-2 2-3v-18l-1-19c-1-4-8-6-12-3q-4 3-4 10v4l-5-5-10-9a73 73 0 0 0-57-13"/></svg>
+                    </button>
+                </div>
+            </div>
+
+
+
+            <!-- 文件区域 -->
+            <main class="file-area" style="position:relative;">
+                <div id="selection-box" class="selection-box"></div>
+                <!-- 文件网格 -->
+                <div class="file-grid" id="file-list-container">
+                    <div style="grid-column: 1 / -1; color: var(--dim); text-align: center; padding: 40px;" data-i18n="fileListLoading"></div>
+                </div>
+            </main>
+        </div>
+
+        <!-- 抽屉把手 -->
+        <div class="drawer-handle" id="drawer-handle">◀</div>
+    </div>
+
+    <!-- 通用通知弹窗 -->
+    <div class="toast-popup" id="toast-popup">
+        <div class="toast-popup-title" id="toast-title"></div>
+        <div class="toast-popup-message" id="toast-message"></div>
+        <div class="toast-popup-info" id="toast-info"></div>
+        <div class="progress-bar" id="toast-progress-bar">
+            <div class="progress-fill" id="toast-progress-fill"></div>
+        </div>
+    </div>
+
+    <script>
+        // i18n 国际化字典
+        var i18n = {
+          zh: {
+            sidebarTitleQuick: '快捷操作',
+            btnAutoRestart: '自动软重启',
+            sidebarStorage: '存储信息',
+            storageLoading: '加载中...',
+            crumbRoot: '📁 根目录',
+            fileListLoading: '加载文件列表...',
+            previewLoading: '加载中...',
+            previewUnsupported: '该格式不支持在线预览',
+            previewLoadFailed: '加载失败',
+            sdNotMounted: 'SD卡未挂载',
+            storageFetchFailed: '获取状态失败',
+            folderEmpty: '文件夹是空的',
+            fileListFailed: '获取文件列表失败',
+            moveLoading: '加载中...',
+            moveNoSubfolder: '此目录下没有子文件夹',
+            moveLoadFailed: '加载失败',
+            uploadTitle: '上传任务',
+            uploadCancel: '取消上传',
+            downloadTitle: '下载任务',
+            downloadCancel: '取消下载',
+            commonUpload: '上传',
+            commonDownload: '下载',
+            commonDelete: '删除',
+            commonRename: '重命名',
+            commonMove: '移动',
+            commonPreview: '预览',
+            commonInfo: '详情',
+            commonCopy: '复制',
+            commonCut: '剪切',
+            commonPaste: '粘贴',
+            uploadDragText: '拖拽文件到此处',
+            uploadClickHint: '或点击此处选择文件（最多10个）',
+            confirmTitle: '确认',
+            ok: '确定',
+            cancel: '取消',
+            pageTitle: 'SuperDongle - 文件管理',
+            titleParentDir: '上级目录',
+            titleRefresh: '刷新',
+            titleSelectAll: '全选/取消全选',
+            titleNewFolder: '新建文件夹',
+            titleUploadFile: '上传文件',
+            titlePreview: '预览',
+            titleRename: '重命名',
+            titleMove: '移动',
+            titleRestartUsb: '重启USB',
+            fileInfoTitle: '文件详情',
+            fileInfoName: '名称',
+            fileInfoPath: '完整路径',
+            fileInfoType: '类型',
+            fileInfoSize: '大小',
+            fileInfoMtime: '最后修改',
+            moveHere: '移动到此处',
+            close: '关闭',
+            toastHint: '提示',
+            toastTooManyFiles: '选择文件过多',
+            toastTooManyFilesMsg: '最多同时选择10个文件',
+            toastNoFolderDownload: '暂不支持下载文件夹',
+            toastUsbRestartSuccess: 'USB重启成功',
+            toastUsbRestartSuccessMsg: '设备正在重新初始化',
+            toastRestartFailed: '重启失败',
+            toastDeleteSuccess: '删除成功',
+            toastDeleteFailed: '删除失败',
+            toastNetworkError: '网络错误，请检查连接',
+            toastNetworkErrorShort: '网络错误',
+            toastInvalidName: '名称非法',
+            toastInvalidFolderNameMsg: '文件夹名不能包含特殊字符',
+            toastInvalidFileNameMsg: '文件名不能包含特殊字符',
+            toastCreateSuccess: '创建成功',
+            toastCreateSuccessMsg: '文件夹已建立',
+            toastCreateFailed: '创建失败',
+            toastOperationFailed: '操作失败',
+            toastRenameSuccess: '重命名成功',
+            toastRenameFailed: '重命名失败',
+            toastMoveFailed: '移动失败',
+            toastMoveSuccess: '移动成功',
+            toastMoveToCurrentDir: '不能移动到当前目录',
+            toastUnknownError: '未知错误',
+            toastSomeFilesFailed: '部分文件未能删除',
+            toastItemsDeleted: '个文件/目录已删除',
+            toastItemsMoved: '个项目已移动',
+            uploadWaiting: '等待中',
+            uploadRenamed: '重命名',
+            uploadPreparing: '准备中...',
+            statusPending: '等待中',
+            statusConnecting: '连接中...',
+            statusSaving: '正在保存...',
+            statusCompleted: '已完成',
+            statusError: '下载失败',
+            statusCancelled: '已取消',
+            statusBrowserTakeover: '浏览器接管',
+            statusServerError: '服务器错误',
+            downloadSkippedFolders: '已跳过',
+            confirmDeleteTitle: '确认删除',
+            confirmDeleteContent: '确定要删除选中的',
+            moveTitleMulti: '移动',
+            moveTitleSingle: '移动到',
+            storageUsedSpace: '已用空间',
+            storageCapacity: '总容量',
+            storageUsed: '已用',
+            storageFree: '可用'
+          },
+          en: {
+            sidebarTitleQuick: 'Quick Actions',
+            btnAutoRestart: 'Auto Soft Reboot',
+            sidebarStorage: 'Storage Info',
+            storageLoading: 'Loading...',
+            crumbRoot: '📁 Root',
+            fileListLoading: 'Loading file list...',
+            previewLoading: 'Loading...',
+            previewUnsupported: 'Preview not available',
+            previewLoadFailed: 'Failed to load',
+            sdNotMounted: 'SD card not mounted',
+            storageFetchFailed: 'Failed to get status',
+            folderEmpty: 'Folder is empty',
+            fileListFailed: 'Failed to get file list',
+            moveLoading: 'Loading...',
+            moveNoSubfolder: 'No subfolders',
+            moveLoadFailed: 'Failed to load',
+            uploadTitle: 'Upload Tasks',
+            uploadCancel: 'Cancel Upload',
+            downloadTitle: 'Download Tasks',
+            downloadCancel: 'Cancel Download',
+            commonUpload: 'Upload',
+            commonDownload: 'Download',
+            commonDelete: 'Delete',
+            commonRename: 'Rename',
+            commonMove: 'Move',
+            commonPreview: 'Preview',
+            commonInfo: 'Info',
+            commonCopy: 'Copy',
+            commonCut: 'Cut',
+            commonPaste: 'Paste',
+            uploadDragText: 'Drag files here',
+            uploadClickHint: 'or click to select files (max 10)',
+            confirmTitle: 'Confirm',
+            ok: 'OK',
+            cancel: 'Cancel',
+            pageTitle: 'SuperDongle - Files',
+            titleParentDir: 'Parent Directory',
+            titleRefresh: 'Refresh',
+            titleSelectAll: 'Select All / Deselect All',
+            titleNewFolder: 'New Folder',
+            titleUploadFile: 'Upload File',
+            titlePreview: 'Preview',
+            titleRename: 'Rename',
+            titleMove: 'Move',
+            titleRestartUsb: 'Restart USB',
+            fileInfoTitle: 'File Info',
+            fileInfoName: 'Name',
+            fileInfoPath: 'Path',
+            fileInfoType: 'Type',
+            fileInfoSize: 'Size',
+            fileInfoMtime: 'Modified',
+            moveHere: 'Move Here',
+            close: 'Close',
+            toastHint: 'Notice',
+            toastTooManyFiles: 'Too Many Files',
+            toastTooManyFilesMsg: 'Max 10 files at once',
+            toastNoFolderDownload: 'Folder download not supported',
+            toastUsbRestartSuccess: 'USB restart successful',
+            toastUsbRestartSuccessMsg: 'Device reinitializing',
+            toastRestartFailed: 'Restart Failed',
+            toastDeleteSuccess: 'Delete Successful',
+            toastDeleteFailed: 'Delete Failed',
+            toastNetworkError: 'Network error, check connection',
+            toastNetworkErrorShort: 'Network Error',
+            toastInvalidName: 'Invalid Name',
+            toastInvalidFolderNameMsg: 'Folder name cannot contain special characters',
+            toastInvalidFileNameMsg: 'Filename cannot contain special characters',
+            toastCreateSuccess: 'Created',
+            toastCreateSuccessMsg: 'Folder created',
+            toastCreateFailed: 'Create Failed',
+            toastOperationFailed: 'Operation failed',
+            toastRenameSuccess: 'Rename Successful',
+            toastRenameFailed: 'Rename Failed',
+            toastMoveFailed: 'Move Failed',
+            toastMoveSuccess: 'Move Successful',
+            toastMoveToCurrentDir: 'Cannot move to current directory',
+            toastUnknownError: 'Unknown error',
+            toastSomeFilesFailed: 'Some files could not be deleted',
+            toastItemsDeleted: 'file(s)/folder(s) deleted',
+            toastItemsMoved: 'item(s) moved',
+            uploadWaiting: 'Waiting...',
+            uploadRenamed: 'Renamed',
+            uploadPreparing: 'Preparing...',
+            statusPending: 'Pending',
+            statusConnecting: 'Connecting...',
+            statusSaving: 'Saving...',
+            statusCompleted: 'Completed',
+            statusError: 'Download Failed',
+            statusCancelled: 'Cancelled',
+            statusBrowserTakeover: 'Browser download',
+            statusServerError: 'Server Error',
+            downloadSkippedFolders: 'Skipped',
+            confirmDeleteTitle: 'Confirm Delete',
+            confirmDeleteContent: 'Delete selected',
+            moveTitleMulti: 'Move',
+            moveTitleSingle: 'Move to',
+            storageUsedSpace: 'Used Space',
+            storageCapacity: 'Capacity',
+            storageUsed: 'Used',
+            storageFree: 'Free'
+          }
+        };
+        var _lang = localStorage.getItem('lang') || (navigator.language.slice(0, 2) === 'zh' ? 'zh' : 'en');
+        function t(key) { return i18n[_lang][key] || key; }
+
+        // 获取MIME类型
+        const getMimeType = (filename) => {
+            const ext = filename.split('.').pop().toLowerCase();
+            const mimeTypes = {
+                'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'png': 'image/png', 'gif': 'image/gif',
+                'mp4': 'video/mp4', 'webm': 'video/webm', 'avi': 'video/x-msvideo',
+                'mp3': 'audio/mpeg', 'wav': 'audio/wav', 'flac': 'audio/flac',
+                'js': 'application/javascript', 'html': 'text/html', 'css': 'text/css', 'json': 'application/json',
+                'zip': 'application/zip', 'rar': 'application/x-rar-compressed', '7z': 'application/x-7z-compressed',
+                'pdf': 'application/pdf', 'doc': 'application/msword', 'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'txt': 'text/plain', 'exe': 'application/x-ms-dos-executable'
+            };
+            return mimeTypes[ext] || 'application/octet-stream';
+        };
+
+        // 文件图标常量（内嵌 SVG）
+        const FILE_ICONS = {
+            dir: '<svg class="file-svg" viewBox="0 0 1024 1024"><path d="M853.333333 256H469.333333l-85.333333-85.333333H170.666667c-46.933333 0-85.333333 38.4-85.333334 85.333333v170.666667h853.333334v-85.333334c0-46.933333-38.4-85.333333-85.333334-85.333333z" fill="#FFA000"/><path d="M853.333333 256H170.666667c-46.933333 0-85.333333 38.4-85.333334 85.333333v426.666667c0 46.933333 38.4 85.333333 85.333334 85.333333h682.666666c46.933333 0 85.333333-38.4 85.333334-85.333333V341.333333c0-46.933333-38.4-85.333333-85.333334-85.333333z" fill="#FFCA28"/></svg>',
+            file: '<svg class="file-svg" viewBox="0 0 1024 1024"><path d="M658.285714 292.571429V22.857143a120.685714 120.685714 0 0 1 20.553143 16.018286l233.142857 233.142857c5.705143 5.705143 10.861714 12.580571 16.018286 20.553143H658.285714z m-73.142857 18.285714a54.857143 54.857143 0 0 0 54.857143 54.857143H950.857143v603.428571a54.857143 54.857143 0 0 1-54.857143 54.857143h-768A54.857143 54.857143 0 0 1 73.142857 969.142857v-914.285714A54.857143 54.857143 0 0 1 128 0H585.142857v310.857143z" fill="#90CAF9"></path></svg>',
+            img: '<svg class="file-svg" viewBox="0 0 1024 1024"><path d="M610.795565 0L937.720621 341.342794V904.514412c0 65.958315-53.981375 119.457206-120.56408 119.457207L199.804878 1021.72949c-59.544124 2.27051-113.525499-51.228381-113.525499-113.525499V113.525499c0-60.026608 53.981375-113.525499 113.525499-113.525499h410.990687z" fill="#5465FC"></path><path d="M361.49357 540.977384l125.076718 137.195565 171.082927-235.991131 196.881597 314.607539H210.5898zM482.852328 380.026608c0 42.827494-34.909091 77.509534-77.935255 77.509534a77.736585 77.736585 0 0 1-77.963636-77.481153c0-42.827494 34.909091-77.509534 77.963636-77.509534a77.736585 77.736585 0 0 1 77.935255 77.481153" fill="#FFFFFF"></path><path d="M937.720621 341.342794h-200.202217c-66.582705 0-126.637694-59.544124-126.637694-125.502439V0L937.720621 341.342794z" fill="#4552CD"></path></svg>',
+            video: '<svg class="file-svg" viewBox="0 0 1024 1024"><path d="M136.533604 0.00026a49.119975 49.119975 0 0 0-35.839982 15.359992C91.307627 25.600247 85.33463 38.40024 85.33463 51.200234v921.599532a49.119975 49.119975 0 0 0 15.359992 35.839982 50.545974 50.545974 0 0 0 35.839982 15.359992h750.931619a49.119975 49.119975 0 0 0 35.839981-15.359992 50.546974 50.546974 0 0 0 15.359993-35.839982V290.134113L648.533344 0.00026z" fill="#8a8a8a"></path><path d="M938.666197 290.133113H699.733318a52.492973 52.492973 0 0 1-51.199974-51.199974V0.00026z" fill="#bfbfbf"></path><path d="M649.447344 630.58894v-67.470966c0-8.099996 2.699999-13.494993 5.399997-16.193992l75.571961-75.571961c24.291988-26.989986 51.278974-32.387984 51.278974-5.399998v269.899863c0 26.989986-26.989986 21.592989-51.278974-5.399997l-75.571961-78.27196c-2.699999-8.099996-5.399997-13.494993-5.399997-21.592989z m-35.087983 75.571961c0 21.592989-18.89299 40.484979-40.485979 40.48498h-291.499852c-21.592989 0-40.484979-18.89299-40.48498-40.48498V484.846014c0-21.592989 18.89299-40.484979 40.48498-40.48498h288.799853c21.592989 0 40.484979 18.89299 40.48498 40.48498l2.699998 221.319887z" fill="#FFFFFF"></path></svg>',
+            audio: '<svg class="file-svg" viewBox="0 0 1024 1024"><path d="M967.111111 281.6V910.222222c0 62.862222-50.915556 113.777778-113.777778 113.777778H170.666667c-62.862222 0-113.777778-50.915556-113.777778-113.777778V113.777778c0-62.862222 50.915556-113.777778 113.777778-113.777778h514.844444L967.111111 281.6z" fill="#A15FDE"></path><path d="M685.511111 196.266667V0L967.111111 281.6H770.844444a85.333333 85.333333 0 0 1-85.333333-85.333333" fill="#C386F0"></path><path d="M669.980444 426.268444v236.999112c0 26.254222-31.857778 47.587556-71.082666 47.587555-39.253333 0-70.741333-21.333333-70.741334-47.587555 0-26.282667 31.516444-47.587556 70.741334-47.587556 14.848 0 28.728889 3.100444 40.163555 8.334222v-165.916444l-205.767111 48.497778v211.057777c0 26.254222-32.142222 47.559111-71.992889 47.559111-39.850667 0-72.305778-21.333333-72.305777-47.559111 0-26.282667 32.426667-47.587556 72.305777-47.587555a96.711111 96.711111 0 0 1 41.102223 8.647111V474.168889c0-14.222222 9.870222-26.88 23.779555-29.980445l205.795556-47.900444a30.862222 30.862222 0 0 1 38.001777 29.980444" fill="#FFFFFF"></path></svg>',
+            bin: '<svg class="file-svg" viewBox="0 0 1024 1024"><path d="M640 0v256h256L640 0zM416 576h-64c-17.6 0-32 14.4-32 32v128c0 17.6 14.4 32 32 32h64c17.6 0 32-14.4 32-32v-128c0-17.6-14.4-32-32-32z m160-320V0H224C170.98 0 128 42.98 128 96v832c0 53 42.98 96 96 96h576c53.02 0 96-42.98 96-96V320H641.8c-37.2 0-65.8-28.6-65.8-64z m-64 480c0 52.94-43.06 96-96 96h-64c-52.94 0-96-43-96-96v-128c0-53 43.06-96 96-96h64c53 0 96 43 96 96v128z m192-192v224h32c17.688 0 32 14.312 32 32s-14.4 32-32 32h-128c-17.688 0-32-14.312-32-32s14.312-32 32-32h32v-192h-32c-17.6 0-32-14.4-32-32s14.4-32 32-32h64c17.6 0 32 14.4 32 32z" fill="#607D8B"></path></svg>',
+            code: '<svg class="file-svg" viewBox="0 0 1024 1024"><path d="M893.882182 213.899636c-58.530909-63.604364-102.842182-113.617455-161.093818-177.664a110.312727 110.312727 0 0 0-24.226909-20.48v216.948364a27.624727 27.624727 0 0 0 27.392 27.717818h186.693818a137.309091 137.309091 0 0 0-28.765091-46.522182z m-171.682909 120.878546a87.947636 87.947636 0 0 1-87.156364-88.133818V0.162909q-228.072727-0.209455-456.378182 0C126.045091 0.442182 93.160727 38.469818 93.160727 97.908364c-0.139636 143.127273 0 768.721455 0 824.994909 0 64.186182 33.303273 101.073455 91.810909 101.073454h654.382546c58.530909 0 91.415273-36.189091 91.415273-101.073454 0.139636-231.400727 0-357.725091 0.139636-588.148364zM392.308364 687.895273a35.095273 35.095273 0 0 1 0 49.314909 34.024727 34.024727 0 0 1-48.733091 0l-100.654546-101.655273a35.258182 35.258182 0 0 1 0-49.431273l100.654546-101.655272a34.141091 34.141091 0 0 1 48.733091 0 35.072 35.072 0 0 1 0 49.291636l-76.334546 76.962909z m192.605091-165.236364l-86.109091 203.566546a34.466909 34.466909 0 0 1-31.674182 21.154909 36.468364 36.468364 0 0 1-13.637818-2.769455 35.188364 35.188364 0 0 1-18.152728-45.824l86.109091-203.589818a34.443636 34.443636 0 0 1 45.288728-18.362182 34.909091 34.909091 0 0 1 18.199272 45.917091z m196.212363 112.779636l-100.654545 101.655273a34.024727 34.024727 0 0 1-48.733091 0 35.118545 35.118545 0 0 1 0-49.314909l76.264727-77.125818-76.264727-77.009455a35.072 35.072 0 0 1 0-49.291636 34.141091 34.141091 0 0 1 48.733091 0l100.654545 101.655273a35.258182 35.258182 0 0 1 0 49.524363z" fill="#68768C"></path></svg>',
+            zip: '<svg class="file-svg" viewBox="0 0 1024 1024"><path d="M938.666667 384V142.08C938.666667 112.085333 914.133333 85.333333 884.992 85.333333H139.008C109.866667 85.333333 85.333333 112.085333 85.333333 142.08V384h853.333334z" fill="#55C7F7"></path><path d="M85.333333 640v241.92c0 29.994667 24.32 56.746667 53.248 56.746667h746.837334C914.346667 938.666667 938.666667 911.914667 938.666667 881.92V640H85.333333z" fill="#7ECF3B"></path><path d="M425.045333 85.333333h169.813334v853.333334h-169.813334z" fill="#FDAF42"></path><path d="M85.333333 384h853.333334v256H85.333333z" fill="#F95F5D"></path><path d="M640 469.333333v85.333334H384v-85.333334h256m28.245333-42.666666H355.754667c-5.376 0-14.421333 3.712-14.421334 9.941333v150.784c0 3.712 5.376 9.941333 14.421334 9.941333h312.490666c5.376 0 14.421333-3.712 14.421334-9.941333v-150.784c-3.541333-7.424-9.045333-9.941333-14.421334-9.941333z" fill="#FFFFFF"></path></svg>',
+            doc: '<svg class="file-svg" viewBox="0 0 1024 1024"><path d="M853.589651 1024H170.302463C140.517434 1024 116.363636 1000.311594 116.363636 971.085034V53.613053C116.363636 24.386493 140.517434 0.698087 170.302463 0.698087h287.704767v299.944553c0 58.592737 48.307594 106.109167 107.877653 106.109167H907.528478v564.333227c0 29.22656-24.153797 52.914966-53.938827 52.914966zM565.884883 353.697223A53.519975 53.519975 0 0 1 511.946057 300.64264V0.046539L907.528478 353.697223H565.884883z" fill="#42A5F5"></path></svg>',
+            pdf: '<svg class="file-svg" viewBox="0 0 1024 1024"><path d="M901.850593 926.476283a48.761858 48.761858 0 0 1-48.761859 48.761859H170.422718a48.761858 48.761858 0 0 1-48.761858-48.761859V48.762834a48.761858 48.761858 0 0 1 48.761858-48.761859h418.864363a48.761858 48.761858 0 0 1 34.620919 14.140939l263.801654 263.801654a48.761858 48.761858 0 0 1 14.140939 34.620919V926.476283z" fill="#EBECF0"/><path d="M901.850593 926.476283v48.761859a48.761858 48.761858 0 0 1-48.761859 48.761858H170.422718a48.761858 48.761858 0 0 1-48.761858-48.761859v-48.761859a48.761858 48.761858 0 0 0 48.761858 48.761859h682.666016a48.761858 48.761858 0 0 0 48.761859-48.761859z" fill="#C1C7D0"/><path d="M24.137143 536.381417h975.237166v243.809291a48.761858 48.761858 0 0 1-48.761858 48.761859H72.899001a48.761858 48.761858 0 0 1-48.761858-48.761859v-243.809291z" fill="#FF5630"/><path d="M121.66086 536.381417V438.8577l-97.523717 97.523717h97.523717zM901.850593 536.381417l0.975237-97.523717 97.036098 97.523717H901.850593z" fill="#DE350B"/><path d="M267.946434 585.143275h84.845634a57.051374 57.051374 0 0 1 41.935198 15.603795 55.1009 55.1009 0 0 1 16.091413 40.959961 55.588518 55.588518 0 0 1-16.091413 40.959961 59.001849 59.001849 0 0 1-43.398054 16.091413h-48.761858v76.556118H267.946434z m32.670446 81.919922h43.885672a42.422817 42.422817 0 0 0 25.843785-6.339041 23.893311 23.893311 0 0 0 7.801897-19.992362q0-24.868548-32.670445-24.868548h-44.860909zM434.71199 588.068987H511.755726a73.142787 73.142787 0 0 1 58.51423 25.356166 100.937047 100.937047 0 0 1 21.942836 68.266602 110.689418 110.689418 0 0 1-20.967599 69.729457A71.679932 71.679932 0 0 1 511.755726 780.190708H434.71199z m32.670445 158.963658H511.755726a43.398054 43.398054 0 0 0 36.083775-17.066651A75.093262 75.093262 0 0 0 560.517584 682.666992a70.704695 70.704695 0 0 0-13.65332-48.761859 48.761858 48.761858 0 0 0-37.546631-16.579031h-41.935198zM755.565018 618.788957h-100.937047v45.348529H755.565018v31.207589h-100.937047v81.919922h-32.670445v-190.171248H755.565018z" fill="#FFFFFF"/><path d="M901.850593 312.564487v6.82666h-263.801654a48.761858 48.761858 0 0 1-48.761858-48.761858V0.000975a48.761858 48.761858 0 0 1 34.620919 14.140939l264.289272 263.801654a48.761858 48.761858 0 0 1 13.653321 34.620919z" fill="#C1C7D0"/></svg>',
+            exe: '<svg class="file-svg" viewBox="0 0 1024 1024"><path d="M870.4 1024H153.6a51.2 51.2 0 0 1-51.2-51.2V51.2A51.2 51.2 0 0 1 153.6 0h569.696c11.2 0 22.016 4.384 30.016 12.288l156 156c7.904 8 12.32 18.784 12.288 30.016V972.8a51.2 51.2 0 0 1-51.2 51.2zM153.6 34.144a17.056 17.056 0 0 0-17.056 17.056v921.6c0 9.44 7.616 17.056 17.056 17.056h716.8a17.056 17.056 0 0 0 17.056-17.056V198.304a7.168 7.168 0 0 0-2.368-5.792l-156-156a7.168 7.168 0 0 0-5.792-2.368H153.6z" fill="#4D4D4D"></path><path d="M904.544 204.8h-170.688a17.056 17.056 0 0 1-17.056-17.056V17.056h34.144v153.6h153.6V204.8z" fill="#4D4D4D"></path><path d="M204.8 170.656h443.744V204.8H204.8V170.656z m0 136.544h614.4v34.144H204.8V307.2z m0 136.544h614.4v34.112H204.8v-34.112z m0 136.512h614.4V614.4H204.8v-34.144z m0 273.088h614.4v34.112H204.8v-34.112z m0-136.544h614.4v34.144H204.8V716.8z" fill="#B3B3B3"></path><path d="M955.744 443.744H68.256a34.144 34.144 0 0 0-34.112 34.112v273.088a34.144 34.144 0 0 0 34.112 34.112h887.488a34.144 34.144 0 0 0 34.112-34.112v-273.088a34.144 34.144 0 0 0-34.112-34.112z" fill="#BE28F8"></path><path d="M338.048 629.632v49.28h84v27.104H308.48v-175.392h110.656v27.328h-81.088v44.576h76.608v27.104zM528.928 614.4l59.808 91.616h-36.288l-41.216-66.976-39.68 66.976h-36.288l59.36-92.736-55.776-82.656h35.84l38.08 58.912 36.512-58.912h35.648zM638.208 629.632v49.28h84v27.104H608.64v-175.392h110.656v27.328h-81.088v44.576h76.608v27.104z" fill="#FFFFFF"></path></svg>'
+        };
+
+        // 当前目录路径
+        let currentDir = '';
+        let isLoading = false;
+        let autoRestartEnabled = true;
+        let currentFileList = []; // 缓存当前文件列表
+
+        // 页面加载
+        window.onload = function() {
+            // i18n 读取语言设置
+            _lang = localStorage.getItem('lang') || (navigator.language.slice(0, 2) === 'zh' ? 'zh' : 'en');
+            // 监听 BroadcastChannel 语言同步
+            try { var bc = new BroadcastChannel('superdongle_lang'); bc.onmessage = function(e) { _lang = e.data; localStorage.setItem('lang', e.data); applyLanguage(); }; } catch(e) {}
+            window.addEventListener('storage', function(e) { if (e.key === 'lang') { _lang = e.newValue; applyLanguage(); } });
+            applyLanguage();
+
+            // 读取主题设置
+            var savedTheme = localStorage.getItem('theme');
+            if (savedTheme) {
+                document.body.dataset.theme = savedTheme;
+            }
+            
+            // 侧边栏切换
+            var sidebar = document.getElementById('sidebar');
+            var drawerHandle = document.getElementById('drawer-handle');
+            var toggleSidebar = function() {
+                var isOpen = sidebar.classList.toggle('open');
+                drawerHandle.textContent = isOpen ? '▶' : '◀';
+            };
+            drawerHandle.onclick = toggleSidebar;
+            
+            // 初始化自动重启按钮显示状态
+            toggleAutoRestart();
+
+            // === 事件委托：文件卡片交互 ===
+            var fileContainer = document.getElementById('file-list-container');
+            var fileArea = document.querySelector('.file-area');
+
+            // 文件列表区域拖拽上传
+            fileArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                fileArea.style.outline = '2px dashed #2196F3';
+            });
+            fileArea.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                fileArea.style.outline = 'none';
+            });
+            fileArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                fileArea.style.outline = 'none';
+                if (e.dataTransfer.files.length > 0) {
+                    handleFilesSelect(e.dataTransfer.files);
+                }
+            });
+
+            // 点击处理（复选框、卡片、文件/目录）
+            fileArea.addEventListener('click', function(e) {
+                var card = e.target.closest('.file-card');
+                if (!card) return;
+
+                // 长按后的点击不处理（防止双重切换）
+                if (isPressHandled) {
+                    isPressHandled = false;
+                    e.preventDefault();
+                    return;
+                }
+
+                var name = card.dataset.name;
+
+                // 点击复选框 → 同步选中状态
+                if (e.target.classList.contains('file-checkbox')) {
+                    var isChecked = e.target.checked;
+                    if (isChecked) {
+                        if (!selectedFiles.includes(name)) {
+                            selectedFiles.push(name);
+                        }
+                    } else {
+                        selectedFiles = selectedFiles.filter(f => f !== name);
+                    }
+                    updateCardStyle(name);
+                    updateButtons();
+                    return;
+                }
+
+                // 点击卡片本身
+                if (card.dataset.isDir === 'true') {
+                    if (!isLoading) {
+                        enterDirectory(name);   // 目录 → 进入
+                    }
+                } else {
+                    toggleSelected(name);   // 文件 → 切换选中
+                }
+            });
+
+            // 鼠标按下 → 长按检测开始
+            fileContainer.addEventListener('mousedown', function(e) {
+                var card = e.target.closest('.file-card');
+                if (!card) return;
+                var name = card.dataset.name;
+
+                pressTimer = setTimeout(function() {
+                    isPressHandled = true;
+                    toggleSelected(name);
+                }, 500);
+            });
+
+            // 鼠标松开 → 长按检测结束
+            fileContainer.addEventListener('mouseup', function() {
+                if (pressTimer) {
+                    clearTimeout(pressTimer);
+                    pressTimer = null;
+                }
+            });
+            fileContainer.addEventListener('mouseleave', function() {
+                if (pressTimer) {
+                    clearTimeout(pressTimer);
+                    pressTimer = null;
+                }
+            });
+
+            // ========== 框选（Windows桌面风格） ==========
+            var _dragStartX = null, _dragStartY = null, _dragSelecting = false;
+            var selBox = document.getElementById('selection-box');
+
+            fileArea.addEventListener('mousedown', function(e) {
+                if (e.button !== 0) return;
+                if (e.target.closest('.file-card')) return;
+                if (e.target.closest('.top-bar')) return;
+                if (e.target.closest('.drawer-handle')) return;
+                var rect = fileArea.getBoundingClientRect();
+                _dragStartX = e.clientX - rect.left;
+                _dragStartY = e.clientY - rect.top;
+                _dragSelecting = false;
+            });
+
+            document.addEventListener('mousemove', function(e) {
+                if (_dragStartX === null) return;
+                var rect = fileArea.getBoundingClientRect();
+                var curX = e.clientX - rect.left;
+                var curY = e.clientY - rect.top;
+                var dx = curX - _dragStartX;
+                var dy = curY - _dragStartY;
+
+                if (!_dragSelecting && (Math.abs(dx) > 5 || Math.abs(dy) > 5)) {
+                    _dragSelecting = true;
+                    selBox.style.display = 'block';
+                    document.querySelectorAll('.file-card').forEach(function(c) {
+                        c.classList.remove('drag-selected');
+                    });
+                }
+
+                if (_dragSelecting) {
+                    var left = dx > 0 ? _dragStartX : curX;
+                    var top = dy > 0 ? _dragStartY : curY;
+                    selBox.style.left = left + 'px';
+                    selBox.style.top = top + 'px';
+                    selBox.style.width = Math.abs(dx) + 'px';
+                    selBox.style.height = Math.abs(dy) + 'px';
+
+                    // 实时检测卡片碰撞，更新视觉反馈
+                    var selRect = selBox.getBoundingClientRect();
+                    document.querySelectorAll('.file-card').forEach(function(card) {
+                        var cardRect = card.getBoundingClientRect();
+                        var hit = !(cardRect.left > selRect.right ||
+                                    cardRect.right < selRect.left ||
+                                    cardRect.top > selRect.bottom ||
+                                    cardRect.bottom < selRect.top);
+                        card.classList.toggle('drag-selected', hit);
+                    });
+
+                    e.preventDefault();
+                }
+            });
+
+            document.addEventListener('mouseup', function(e) {
+                if (_dragStartX === null) return;
+
+                // 清除实时选中视觉
+                document.querySelectorAll('.file-card').forEach(function(c) {
+                    c.classList.remove('drag-selected');
+                });
+
+                if (_dragSelecting) {
+                    var selRect = selBox.getBoundingClientRect();
+                    var cards = document.querySelectorAll('.file-card');
+                    var hitNames = [];
+
+                    cards.forEach(function(card) {
+                        var cardRect = card.getBoundingClientRect();
+                        if (!(cardRect.left > selRect.right ||
+                              cardRect.right < selRect.left ||
+                              cardRect.top > selRect.bottom ||
+                              cardRect.bottom < selRect.top)) {
+                            hitNames.push(card.dataset.name);
+                        }
+                    });
+
+                    if (hitNames.length > 0) {
+                        if (!e.ctrlKey && !e.metaKey) {
+                            selectedFiles = [];
+                        }
+                        hitNames.forEach(function(name) {
+                            if (!selectedFiles.includes(name)) {
+                                selectedFiles.push(name);
+                            }
+                        });
+                        document.querySelectorAll('.file-card').forEach(function(c) {
+                            updateCardStyle(c.dataset.name);
+                        });
+                        updateButtons();
+                    } else if (!e.ctrlKey && !e.metaKey) {
+                        selectedFiles = [];
+                        updateButtons();
+                        document.querySelectorAll('.file-card').forEach(function(c) {
+                            updateCardStyle(c.dataset.name);
+                        });
+                    }
+                } else {
+                    // 空白区域点击（未拖拽）：清除选中
+                    if (!e.ctrlKey && !e.metaKey && selectedFiles.length > 0) {
+                        selectedFiles = [];
+                        updateButtons();
+                        document.querySelectorAll('.file-card').forEach(function(c) {
+                            updateCardStyle(c.dataset.name);
+                        });
+                    }
+                }
+
+                selBox.style.display = 'none';
+                _dragStartX = null;
+                _dragStartY = null;
+                _dragSelecting = false;
+            });
+
+            // ========== 自定义tooltip ==========
+            const tooltipEl = document.getElementById('custom-tooltip');
+            let showTimeout = null;
+            let currentCard = null;
+
+            // 判断是否在目标元素上（包括子元素）
+            const isOnTarget = (e) => {
+                const el = e.target;
+                return !!(el.closest('.file-name') || el.closest('.file-icon'));
+            };
+
+            // 更新tooltip位置，超界自动翻转
+            const updatePosition = (e) => {
+                let left = e.clientX + 16;
+                let top = e.clientY + 16;
+
+                tooltipEl.style.left = left + 'px';
+                tooltipEl.style.top = top + 'px';
+
+                const rect = tooltipEl.getBoundingClientRect();
+                // 超出右边界 → 放到鼠标左侧
+                if (rect.right > window.innerWidth - 8) {
+                    left = e.clientX - rect.width - 16;
+                }
+                // 超出底部 → 放到鼠标上方
+                if (rect.bottom > window.innerHeight - 8) {
+                    top = e.clientY - rect.height - 16;
+                }
+                // 边界安全，防止贴边
+                if (left < 8) left = 8;
+                if (top < 8) top = 8;
+
+                tooltipEl.style.left = left + 'px';
+                tooltipEl.style.top = top + 'px';
+            };
+
+            // 显示tooltip
+            const showTip = (card, e) => {
+                const name = card.dataset.tooltipName;
+                const size = card.dataset.tooltipSize;
+                const time = card.dataset.tooltipTime;
+                
+                let content = `<strong>${name}</strong>`;
+                if (size) content += `<br>${size}`;
+                if (time) content += `<br>${time}`;
+                
+                tooltipEl.innerHTML = content;
+                updatePosition(e);
+                tooltipEl.classList.add('visible');
+            };
+
+            // 隐藏tooltip
+            const hideTip = () => {
+                clearTimeout(showTimeout);
+                tooltipEl.classList.remove('visible');
+                currentCard = null;
+            };
+
+            // 鼠标移动事件（触屏设备禁用，避免手指抬起后 tooltip 残留）
+            fileContainer.addEventListener('mousemove', (e) => {
+                if ('ontouchstart' in window) return;
+                const card = e.target.closest('.file-card');
+                
+                // 不在目标区域 → 隐藏
+                if (!card || !isOnTarget(e)) {
+                    hideTip();
+                    return;
+                }
+                
+                currentCard = card;
+                
+                // 已显示 → 只更新位置
+                if (tooltipEl.classList.contains('visible')) {
+                    updatePosition(e);
+                    return;
+                }
+                
+                // 未显示 → 重置延迟
+                clearTimeout(showTimeout);
+                showTimeout = setTimeout(() => {
+                    if (currentCard === card) showTip(card, e);
+                }, 500);
+            }, true);
+
+            // 鼠标离开 → 隐藏
+            fileContainer.addEventListener('mouseleave', hideTip, true);
+
+            // ========== 右键菜单 ==========
+            const contextMenu = document.getElementById('context-menu');
+            let currentContextFile = null;
+            let currentContextInfo = null;
+
+            // 隐藏右键菜单
+            const hideContextMenu = () => {
+                contextMenu.classList.remove('visible');
+            };
+
+            // 显示右键菜单并定位
+            const showContextMenu = (e, card) => {
+                // 隐藏tooltip避免冲突
+                clearTimeout(showTimeout);
+                tooltipEl.classList.remove('visible');
+
+                // 获取文件信息
+                currentContextFile = {
+                    name: card.dataset.name,
+                    path: card.dataset.path,
+                    isDir: card.dataset.isDir === 'true'
+                };
+                currentContextInfo = currentFileList.find(f => f.name === currentContextFile.name);
+
+                // 计算位置（避免超出屏幕）
+                let x = e.clientX;
+                let y = e.clientY;
+                const menuWidth = 180;
+                const menuHeight = 270;
+
+                if (x + menuWidth > window.innerWidth) x = window.innerWidth - menuWidth - 8;
+                if (y + menuHeight > window.innerHeight) y = window.innerHeight - menuHeight - 8;
+
+                contextMenu.style.left = x + 'px';
+                contextMenu.style.top = y + 'px';
+                contextMenu.classList.add('visible');
+
+                // 根据是否是文件夹或是否多选调整菜单
+                const downloadItem = document.getElementById('menu-download');
+                const previewItem = document.getElementById('menu-preview');
+                const renameItem = document.getElementById('menu-rename');
+                const isMultipleSelected = selectedFiles.length > 1;
+                
+                // 下载项：只有单文件且不是文件夹时启用，或者多选文件时也启用
+                if (currentContextFile.isDir) {
+                    downloadItem.classList.add('disabled');
+                } else {
+                    downloadItem.classList.remove('disabled');
+                }
+                
+                // 预览：只在单文件且不是文件夹时启用
+                if (currentContextFile.isDir || isMultipleSelected) {
+                    previewItem.classList.add('disabled');
+                } else {
+                    previewItem.classList.remove('disabled');
+                }
+
+                // 重命名：只在单文件时启用（文件夹也可以重命名）
+                if (isMultipleSelected) {
+                    renameItem.classList.add('disabled');
+                } else {
+                    renameItem.classList.remove('disabled');
+                }
+
+                // 移动：始终可用
+                const moveItem = document.getElementById('menu-move');
+                moveItem.classList.remove('disabled');
+            };
+
+            // 监听文件卡片右键菜单事件（使用事件委托）
+            window.addEventListener('contextmenu', (e) => {
+                hideContextMenu();
+
+                const card = e.target.closest('.file-card');
+                if (card) {
+                    e.preventDefault();
+                    showContextMenu(e, card);
+                }
+            }, true);
+
+            // 点击其他地方关闭菜单
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('#context-menu')) {
+                    hideContextMenu();
+                }
+            }, true);
+
+            // ESC键关闭菜单
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    hideContextMenu();
+                }
+            });
+
+            // ========== 右键菜单功能 ==========
+            // 重命名
+            document.getElementById('menu-rename').addEventListener('click', () => {
+                if (!currentContextFile || selectedFiles.length > 1) return;
+                hideContextMenu();
+                selectedFiles = [currentContextFile.name];
+                updateButtons();
+                document.querySelectorAll('.file-card').forEach(c => updateCardStyle(c.dataset.name));
+                renameFile();
+            });
+
+            // 下载
+            document.getElementById('menu-download').addEventListener('click', () => {
+                if (!currentContextFile || currentContextFile.isDir) return;
+                hideContextMenu();
+                // 如果已经有选中文件，直接下载选中文件；否则下载当前右键的文件
+                if (selectedFiles.length === 0) {
+                    selectedFiles = [currentContextFile.name];
+                }
+                updateButtons();
+                downloadSelectedFiles();
+            });
+
+            // 预览
+            document.getElementById('menu-preview').addEventListener('click', () => {
+                if (!currentContextFile || currentContextFile.isDir || selectedFiles.length > 1) return;
+                hideContextMenu();
+                openPreview(currentContextFile);
+            });
+
+            // 预览功能
+            let originalBodyOverflow = null;
+            let previewOverlay = null;
+            let previewContent = null;
+            let previewDetails = null;
+            let previewCloseBtn = null;
+
+            let previewTextXHR = null;
+
+            function openPreview(file) {
+                if (file.isDir) return;
+
+                // 通知父页面：预览操作进行中，阻止进入离线模式
+                window.parent.postMessage({ type: 'fileBusy', busy: true }, '*');
+
+                // 隐藏 tooltip，避免双击后残留
+                clearTimeout(showTimeout);
+                tooltipEl.classList.remove('visible');
+                currentCard = null;
+
+                const info = currentContextInfo || {};
+
+                previewOverlay = document.getElementById('preview-overlay');
+                previewContent = document.getElementById('preview-content');
+                previewDetails = document.getElementById('preview-details');
+                previewCloseBtn = document.getElementById('preview-close-btn');
+
+                originalBodyOverflow = document.body.style.overflow;
+                document.body.style.overflow = 'hidden';
+
+                const fullPath = currentDir ? currentDir + '/' + file.name : file.name;
+                const sizeText = info.size ? formatSize(info.size) + ' (' + info.size + ' bytes)' : '';
+                const mimeType = getMimeType(file.name);
+                const timeText = info.mtime ? formatTimestamp(info.mtime) : '';
+
+                previewDetails.innerHTML = '<div style="margin-bottom: 8px; font-weight: 600;">' + file.name + '</div>' +
+                    '<div style="font-size: 13px; opacity: 0.7;">' + mimeType + (sizeText ? ' · ' + sizeText : '') + (timeText ? ' · ' + timeText : '') + '</div>';
+
+                const ext = file.name.split('.').pop().toLowerCase();
+                const imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'];
+                const videoExts = ['mp4', 'webm', 'ogg'];
+                const audioExts = ['mp3', 'wav', 'ogg', 'flac'];
+                const textExts = ['txt', 'log', 'json', 'js', 'css', 'html', 'xml', 'md', 'py', 'c', 'cpp', 'h', 'java', 'go', 'php', 'rb', 'sh', 'bat'];
+
+                if (imageExts.includes(ext)) {
+                    previewContent.innerHTML = '<img src="/api/msc/preview?filename=' + encodeURIComponent(fullPath) + '" style="max-width: 100%; max-height: 100%; object-fit: contain;">';
+                } else if (videoExts.includes(ext)) {
+                    previewContent.innerHTML = '<video controls style="width: 100%; height: 100%; max-width: 100%; max-height: 100%; object-fit: contain;" preload="metadata"><source src="/api/msc/preview?filename=' + encodeURIComponent(fullPath) + '">您的浏览器不支持视频播放</video>';
+                } else if (audioExts.includes(ext)) {
+                    previewContent.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;height:100%;padding:40px;box-sizing:border-box;"><div style="width:96px;height:96px;border-radius:50%;background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;margin-bottom:28px;box-shadow:0 4px 20px rgba(102,126,234,0.35);"><svg viewBox="0 -960 960 960" width="48px" fill="white"><path d="M400-120q-66 0-113-47t-47-113q0-66 47-113t113-47q23 0 42.5 5.5T480-422v-418h240v160H560v400q0 66-47 113t-113 47Z"/></svg></div><div style="width:100%;max-width:400px;"><audio controls style="width:100%;" preload="metadata"><source src="/api/msc/preview?filename=' + encodeURIComponent(fullPath) + '">您的浏览器不支持音频播放</audio></div><div style="margin-top:16px;color:var(--dim);font-size:13px;">' + escapeHtml(file.name) + '</div></div>';
+                } else if (textExts.includes(ext)) {
+                    previewContent.innerHTML = '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;"><div style="color:var(--dim);font-size:14px;">' + t('previewLoading') + '</div></div>';
+                    loadTextPreview(fullPath);
+                } else {
+                    previewContent.innerHTML = '<div class="preview-unsupported"><svg class="preview-icon" viewBox="0 -960 960 960" fill="var(--dim)"><path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h560q33 0 56.5 23.5T840-760v560q0 33-23.5 56.5T760-120H200Zm0-80h560v-480H200v480Zm133.5-124.5Q269-369 240-440q29-71 93.5-115.5T480-600q82 0 146.5 44.5T720-440q-29 71-93.5 115.5T480-280q-82 0-146.5-44.5Zm248.5-42q46-26.5 72-73.5-26-47-72-73.5T480-540q-56 0-102 26.5T306-440q26 47 72 73.5T480-340q56 0 102-26.5ZM480-440Zm42.5 42.5Q540-415 540-440t-17.5-42.5Q505-500 480-500t-42.5 17.5Q420-465 420-440t17.5 42.5Q455-380 480-380t42.5-17.5Z"></path></svg><div class="preview-text">' + t('previewUnsupported') + '</div></div>';
+                }
+
+                previewOverlay.style.display = 'flex';
+                setTimeout(function() { previewOverlay.classList.add('show'); }, 10);
+
+                function closePreview() {
+                    var video = previewContent.querySelector('video');
+                    if (video) { video.pause(); video.src = ''; video.load(); }
+                    var audio = previewContent.querySelector('audio');
+                    if (audio) { audio.pause(); audio.src = ''; audio.load(); }
+                    if (previewTextXHR) { previewTextXHR.abort(); previewTextXHR = null; }
+                    previewOverlay.classList.remove('show');
+                    setTimeout(function() {
+                        previewOverlay.style.display = 'none';
+                        previewContent.innerHTML = '';
+                        document.body.style.overflow = originalBodyOverflow;
+                    }, 300);
+                    // 通知父页面：预览操作已结束
+                    window.parent.postMessage({ type: 'fileBusy', busy: false }, '*');
+                }
+
+                previewCloseBtn.onclick = closePreview;
+                previewOverlay.onclick = function(e) { if (e.target === previewOverlay) closePreview(); };
+                document.addEventListener('keydown', function escHandler(e) {
+                    if (e.key === 'Escape') {
+                        closePreview();
+                        document.removeEventListener('keydown', escHandler);
+                    }
+                });
+            }
+
+            function loadTextPreview(fullPath) {
+                var xhr = new XMLHttpRequest();
+                previewTextXHR = xhr;
+                xhr.open('GET', '/api/msc/preview?filename=' + encodeURIComponent(fullPath), true);
+                xhr.onload = function() {
+                    previewTextXHR = null;
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        let content = xhr.responseText;
+                        previewContent.innerHTML = '<div class="preview-text-area">' + escapeHtml(content) + '</div>';
+                    } else {
+                        previewContent.innerHTML = '<div style="text-align:center;padding:40px;color:var(--danger);">' + t('previewLoadFailed') + '</div>';
+                    }
+                };
+                xhr.onerror = function() {
+                    previewTextXHR = null;
+                    previewContent.innerHTML = '<div style="text-align:center;padding:40px;color:var(--danger);">' + t('previewLoadFailed') + '</div>';
+                };
+                xhr.send();
+            }
+
+            function escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+
+            // 双击文件卡片打开预览
+            let clickTimer = null;
+            let lastClickName = null;
+            let lastClickTime = 0;
+
+            fileArea.addEventListener('click', function(e) {
+                const card = e.target.closest('.file-card');
+                if (!card) return;
+                if (e.target.closest('.file-checkbox')) return;
+
+                const name = card.dataset.name;
+                const now = Date.now();
+
+                if (lastClickName === name && now - lastClickTime < 300) {
+                    clearTimeout(clickTimer);
+                    if (card.dataset.isDir !== 'true') {
+                        const file = currentFileList.find(f => f.name === name);
+                        if (file) {
+                            currentContextFile = file;
+                            currentContextInfo = file;
+                            openPreview(file);
+                        }
+                    }
+                    lastClickName = null;
+                    lastClickTime = 0;
+                    return;
+                }
+
+                lastClickName = name;
+                lastClickTime = now;
+            }, true);
+
+            // 详情信息弹窗
+            function showInfoDialog(fileInfo) {
+                var dlg = document.getElementById('custom-dialog');
+                var titleEl = document.getElementById('dialog-title');
+                var contentEl = document.getElementById('dialog-content');
+                var inputEl = document.getElementById('dialog-input');
+                var footerEl = dlg.querySelector('.dialog-footer');
+
+                // 保存原始的 footer HTML，关闭时还原回去
+                var originalFooter = footerEl.innerHTML;
+                var originalContent = contentEl.innerHTML;
+                var originalTitle = titleEl.textContent;
+
+                var rows = [
+                    { label: t('fileInfoName'), value: fileInfo.name },
+                    { label: t('fileInfoPath'), value: fileInfo.path },
+                    { label: t('fileInfoType'), value: fileInfo.type },
+                ];
+                if (fileInfo.size) rows.push({ label: t('fileInfoSize'), value: fileInfo.size });
+                if (fileInfo.mtime) rows.push({ label: t('fileInfoMtime'), value: fileInfo.mtime });
+
+                var html = '<div style="text-align:center;padding:4px 0;"><div style="display:inline-block;text-align:left;min-width:280px;">';
+                rows.forEach(function(r) {
+                    html += '<div style="display:flex;padding:8px 0;border-bottom:1px solid var(--border);">';
+                    html += '<span style="width:80px;color:var(--dim);font-size:13px;flex-shrink:0;">' + r.label + '</span>';
+                    html += '<span style="flex:1;color:var(--text);font-size:13px;word-break:break-all;">' + r.value + '</span>';
+                    html += '</div>';
+                });
+                html += '</div></div>';
+
+                titleEl.textContent = t('fileInfoTitle');
+                contentEl.innerHTML = html;
+                if (inputEl) inputEl.style.display = 'none';
+                footerEl.innerHTML = '<button class="mini-btn" id="info-close-btn">关闭</button>';
+
+                function closeInfoDialog() {
+                    dlg.classList.remove('show');
+                    setTimeout(function() {
+                        dlg.style.display = 'none';
+                        // 还原所有原始内容和 footer
+                        footerEl.innerHTML = originalFooter;
+                        contentEl.innerHTML = originalContent;
+                        titleEl.textContent = originalTitle;
+                    }, 300);
+                }
+
+                document.getElementById('info-close-btn').onclick = closeInfoDialog;
+                dlg.onclick = function(e) { if (e.target === dlg) closeInfoDialog(); };
+
+                dlg.style.display = 'flex';
+                setTimeout(function() { dlg.classList.add('show'); }, 10);
+            }
+
+            document.getElementById('menu-details').addEventListener('click', function() {
+                if (!currentContextFile) return;
+                hideContextMenu();
+
+                var info = currentContextInfo || {};
+                var fullPath = currentDir ? currentDir + '/' + currentContextFile.name : currentContextFile.name;
+                var sizeText = info.size ? formatSize(info.size) + ' (' + info.size + ' bytes)' : '';
+                var mimeType = currentContextFile.isDir ? '文件夹' : getMimeType(currentContextFile.name);
+                var timeText = info.mtime ? formatTimestamp(info.mtime) : '';
+
+                showInfoDialog({
+                    name: currentContextFile.name,
+                    path: fullPath,
+                    type: mimeType,
+                    size: (!currentContextFile.isDir && info.size) ? sizeText : '',
+                    mtime: timeText
+                });
+            });
+
+            // 移动
+            document.getElementById('menu-move').addEventListener('click', () => {
+                if (!currentContextFile) return;
+                hideContextMenu();
+                if (selectedFiles.length === 0) {
+                    selectedFiles = [currentContextFile.name];
+                }
+                showMoveDialog();
+            });
+
+            // 删除
+            document.getElementById('menu-delete').addEventListener('click', () => {
+                if (!currentContextFile) return;
+                hideContextMenu();
+                if (selectedFiles.length === 0) {
+                    selectedFiles = [currentContextFile.name];
+                }
+                updateButtons();
+                document.querySelectorAll('.file-card').forEach(c => updateCardStyle(c.dataset.name));
+                deleteSelectedFiles();
+            });
+
+            // 触摸长按（移动端）
+            fileContainer.addEventListener('touchstart', function(e) {
+                var card = e.target.closest('.file-card');
+                if (!card) return;
+                var name = card.dataset.name;
+
+                pressTimer = setTimeout(function() {
+                    isPressHandled = true;
+                    toggleSelected(name);
+                }, 500);
+            });
+            fileContainer.addEventListener('touchend', function() {
+                if (pressTimer) {
+                    clearTimeout(pressTimer);
+                    pressTimer = null;
+                }
+            });
+            
+            getStorageStatus();
+            getFileList();
+
+            // === 上传系统 ===
+            initUploadSystem();
+
+            function previewSelectedFile() {
+                if (selectedFiles.length !== 1) return;
+                const name = selectedFiles[0];
+                const file = currentFileList.find(f => f.name === name);
+                if (!file || file.isDir) return;
+                currentContextFile = file;
+                currentContextInfo = file;
+                openPreview(file);
+            }
+            document.getElementById('btn-preview').addEventListener('click', previewSelectedFile);
+            document.getElementById('btn-move').addEventListener('click', showMoveDialog);
+        };
+
+        // ========== 主题自动同步 ==========
+        // 监听 BroadcastChannel（同源页面实时同步）
+        try {
+            var bc = new BroadcastChannel('superdongle_theme');
+            bc.onmessage = function(e) {
+                document.body.dataset.theme = e.data;
+                localStorage.setItem('theme', e.data);
+            };
+        } catch(e) {}
+
+        // 监听 localStorage 变化（跨标签页 fallback）
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'theme') {
+                document.body.dataset.theme = e.newValue;
+            }
+        });
+
+        // 上传系统状态
+    let pendingFiles = [];
+    let isUploading = false;
+    let currentXhr = null;
+    let uploadCancelled = false;
+
+    // 下载系统状态
+    let downloadQueue = [];
+    let isDownloading = false;
+    let downloadCancelled = false;
+    let currentXhrDownload = null;
+    const LARGE_FILE_THRESHOLD = 200 * 1024 * 1024;
+
+    // 通知父页面（WiFi管理页）当前是否有文件操作正在进行
+    function notifyParentBusy() {
+      window.parent.postMessage({ type: 'fileBusy', busy: isUploading || isDownloading }, '*');
+    }
+        
+        // 获取安全文件名（处理重名）
+        function getSafeFileName(name, existingNames, pendingNames = []) {
+            let baseName = name;
+            let extension = '';
+            
+            // 分离文件名和扩展名
+            const lastDotIndex = name.lastIndexOf('.');
+            if (lastDotIndex > 0) {
+                baseName = name.substring(0, lastDotIndex);
+                extension = name.substring(lastDotIndex);
+            }
+            
+            // 检查是否有冲突
+            let testName = name;
+            let counter = 1;
+            
+            while (existingNames.includes(testName) || pendingNames.includes(testName)) {
+                testName = `${baseName}(${counter})${extension}`;
+                counter++;
+            }
+            
+            return testName;
+        }
+
+        // 初始化上传系统
+        function initUploadSystem() {
+            const uploadDialogArea = document.getElementById('upload-dialog-area');
+            const fileInput = document.getElementById('file-input');
+
+            // 拖拽事件
+            if (uploadDialogArea) {
+                uploadDialogArea.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    uploadDialogArea.classList.add('dragover');
+                });
+                uploadDialogArea.addEventListener('dragleave', () => {
+                    uploadDialogArea.classList.remove('dragover');
+                });
+                uploadDialogArea.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    uploadDialogArea.classList.remove('dragover');
+                    if (e.dataTransfer.files.length > 0) {
+                        handleFilesSelect(e.dataTransfer.files);
+                    }
+                });
+            }
+
+            // 选择文件
+            if (fileInput) {
+                fileInput.addEventListener('change', function() {
+                    if (this.files.length > 0) {
+                        handleFilesSelect(this.files);
+                        this.value = '';
+                    }
+                });
+            }
+
+            // 点击选择文件
+            if (uploadDialogArea) {
+                uploadDialogArea.onclick = function() {
+                    document.getElementById('file-input').click();
+                };
+            }
+        }
+
+        // 打开上传弹窗
+        function openUploadDialog() {
+            const dialog = document.getElementById('upload-dialog');
+            dialog.style.display = 'flex';
+            setTimeout(() => {
+                dialog.classList.add('show');
+            }, 10);
+            
+            // 重置状态
+            pendingFiles = [];
+            
+            // 绑定关闭按钮事件
+            document.getElementById('upload-dialog-cancel').onclick = closeUploadDialog;
+            
+            // 点击遮罩层关闭
+            dialog.onclick = function(e) {
+                if (e.target === dialog) {
+                    closeUploadDialog();
+                }
+            };
+            
+            // 按ESC键关闭
+            document.addEventListener('keydown', function escHandler(e) {
+                if (e.key === 'Escape') {
+                    closeUploadDialog();
+                    document.removeEventListener('keydown', escHandler);
+                }
+            });
+        }
+        
+        // 关闭上传弹窗
+        function closeUploadDialog() {
+            const dialog = document.getElementById('upload-dialog');
+            dialog.classList.remove('show');
+            setTimeout(() => {
+                dialog.style.display = 'none';
+                pendingFiles = [];
+                updatePendingFilesUI();
+            }, 300);
+        }
+
+        // 处理文件选择
+        function handleFilesSelect(files) {
+            // 数量限制
+            if (files.length > 10) {
+                toast('error', t('toastTooManyFiles'), t('toastTooManyFilesMsg'));
+                return;
+            }
+
+            // 获取已存在的文件名
+            const existingNames = currentFileList.map(f => f.name);
+            const processedFiles = [];
+            const processedNames = [];
+            
+            // 保存当前目录的快照（避免上传过程中目录改变导致问题）
+            const originalDir = currentDir;
+            
+            // 逐个处理文件
+            for (let file of files) {
+                // 获取安全的文件名
+                const safeName = getSafeFileName(file.name, existingNames, processedNames);
+                
+                // 保存文件对象、重命名信息和原目录
+                processedFiles.push({
+                    originalFile: file,
+                    safeName: safeName,
+                    wasRenamed: safeName !== file.name,
+                    targetDir: originalDir
+                });
+                processedNames.push(safeName);
+            }
+            
+            // 保存处理后的文件
+            pendingFiles = processedFiles;
+
+            if (pendingFiles.length === 0) return;
+            
+            // 关闭上传对话框
+            closeUploadDialog();
+            
+            // 显示进度面板
+            showUploadProgressPanel();
+            
+            // 开始上传
+            isUploading = true;
+            notifyParentBusy();
+            uploadFiles(pendingFiles);
+        }
+
+        // 显示上传进度面板
+        function showUploadProgressPanel() {
+            const panel = document.getElementById('upload-progress-panel');
+            const list = document.getElementById('upload-progress-list');
+            
+            // 初始化进度列表
+            let html = '';
+            for (let i = 0; i < pendingFiles.length; i++) {
+                const fileData = pendingFiles[i];
+                const file = fileData.originalFile;
+                const displayName = fileData.safeName;
+                
+                html += `
+                    <div class="upload-progress-item pending" id="upload-item-${i}">
+                        <div class="upload-progress-bg" style="width: 0%"></div>
+                        <div class="upload-progress-row">
+                            <div class="upload-file-info">
+                                <div class="upload-file-name" title="${displayName}">${displayName}</div>
+                                <div class="upload-file-meta">
+                                    ${formatSize(file.size)} · ${t('uploadWaiting')}
+                                </div>
+                            </div>
+                            <div class="upload-status-container" id="status-${i}">
+                                ${fileData.wasRenamed ? `<span class="upload-status-label">${t('uploadRenamed')}</span>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            list.innerHTML = html;
+            
+            panel.style.display = 'block';
+        }
+
+        // 上传文件（串行执行）
+        async function uploadFiles(fileDataList) {
+            uploadCancelled = false;
+            const cancelBtn = document.getElementById('btn-cancel-upload');
+            if (cancelBtn) cancelBtn.style.display = 'inline-block';
+
+            // 获取当前时间戳（浏览器本地时间）
+            const mtime = getCurrentTimestamp();
+
+            let uploadedCount = 0;
+            for (let i = 0; i < fileDataList.length; i++) {
+                if (uploadCancelled) break;
+                const fileData = fileDataList[i];
+                if (await uploadSingleFile(fileData, i, mtime)) {
+                    uploadedCount++;
+                }
+            }
+            
+            isUploading = false;
+            notifyParentBusy();
+            
+            // 有文件成功写入 disk 才需要重启 MSC 让主机看到变化
+            if (autoRestartEnabled && uploadedCount > 0) {
+                restartMSC();
+            }
+            getStorageStatus();
+            
+            if (cancelBtn) cancelBtn.style.display = 'none';
+            
+            // 所有任务完成，等待2秒后自动关闭
+            setTimeout(() => {
+                const panel = document.getElementById('upload-progress-panel');
+                panel.style.display = 'none';
+            }, 2000);
+        }
+
+        // 取消上传
+        function cancelUpload() {
+            if (!isUploading) return;
+            uploadCancelled = true;
+            if (currentXhr) {
+                currentXhr.abort();
+            }
+            pendingFiles = [];
+            getFileList();
+        }
+
+        // 上传单个文件
+        function uploadSingleFile(fileData, index, mtime) {
+            return new Promise((resolve) => {
+                const file = fileData.originalFile;
+                const safeName = fileData.safeName;
+                const wasRenamed = fileData.wasRenamed;
+                const targetDir = fileData.targetDir;
+                
+                let fullPath = safeName;
+                if (targetDir) {
+                    fullPath = targetDir + '/' + safeName;
+                }
+
+                const itemEl = document.getElementById(`upload-item-${index}`);
+                const bgEl = itemEl.querySelector('.upload-progress-bg');
+                const metaEl = itemEl.querySelector('.upload-file-meta');
+                const statusEl = document.getElementById(`status-${index}`);
+
+                // 更新状态为上传中
+                itemEl.classList.remove('pending', 'success', 'error');
+                metaEl.textContent = `${formatSize(file.size)} · ${t('uploadPreparing')}`;
+                
+                // 保留重命名标签，清空其他标签
+                if (wasRenamed) {
+                    statusEl.innerHTML = '<span class="upload-status-label">重命名</span>';
+                } else {
+                    statusEl.innerHTML = '';
+                }
+
+                const xhr = new XMLHttpRequest();
+                currentXhr = xhr;
+                let lastLoaded = 0;
+                let lastTime = Date.now();
+                let smoothSpeed = 0;
+                let lastUiTime = 0;
+
+                xhr.upload.addEventListener('progress', function(e) {
+                    if (e.lengthComputable) {
+                        const now = Date.now();
+                        const timeDiff = (now - lastTime) / 1000;
+                        const bytesDiff = e.loaded - lastLoaded;
+                        const currentSpeed = timeDiff > 0 ? bytesDiff / timeDiff : 0;
+                        smoothSpeed = smoothSpeed * 0.9 + currentSpeed * 0.1;
+                        lastLoaded = e.loaded;
+                        lastTime = now;
+
+                        if (now - lastUiTime >= 300) {
+                            lastUiTime = now;
+                            const speedStr = smoothSpeed > 1024 * 1024 ? (smoothSpeed / (1024 * 1024)).toFixed(1) + ' MB/s' : (smoothSpeed / 1024).toFixed(0) + ' KB/s';
+                            const percentComplete = (e.loaded / e.total) * 100;
+                            
+                            // 更新背景进度条
+                            bgEl.style.width = percentComplete + '%';
+                            metaEl.textContent = `${formatSize(e.loaded)} / ${formatSize(file.size)} · ${speedStr}`;
+                        }
+                    }
+                });
+
+                xhr.addEventListener('load', function() {
+                    if (xhr.status === 200) {
+                        const data = JSON.parse(xhr.responseText);
+                        if (data.ok) {
+                            // 成功
+                            itemEl.classList.add('success');
+                            bgEl.style.width = '100%';
+                            metaEl.textContent = formatSize(file.size);
+                            
+                            // 显示重命名标签 + success标签
+                            if (wasRenamed) {
+                                statusEl.innerHTML = '<span class="upload-status-label">重命名</span><span class="upload-status-label success">success</span>';
+                            } else {
+                                statusEl.innerHTML = '<span class="upload-status-label success">success</span>';
+                            }
+                            
+                            // 刷新列表
+                            getFileList();
+                            currentXhr = null;
+                            resolve(true);
+                            return;
+                        } else {
+                            // 失败
+                            itemEl.classList.add('error');
+                            metaEl.textContent = formatSize(file.size);
+                            
+                            // 显示重命名标签 + error标签
+                            if (wasRenamed) {
+                                statusEl.innerHTML = `<span class="upload-status-label">${t('uploadRenamed')}</span><span class="upload-status-label error">${data.message || t('toastUnknownError')}</span>`;
+                            } else {
+                                statusEl.innerHTML = `<span class="upload-status-label error">${data.message || t('toastUnknownError')}</span>`;
+                            }
+                        }
+                    } else {
+                        itemEl.classList.add('error');
+                        metaEl.textContent = formatSize(file.size);
+                        
+                        // 显示重命名标签 + error标签
+                        if (wasRenamed) {
+                            statusEl.innerHTML = `<span class="upload-status-label">${t('uploadRenamed')}</span><span class="upload-status-label error">${t('statusServerError')} ${xhr.status}</span>`;
+                        } else {
+                            statusEl.innerHTML = `<span class="upload-status-label error">${t('statusServerError')} ${xhr.status}</span>`;
+                        }
+                    }
+                    currentXhr = null;
+                    resolve(false);
+                });
+
+                xhr.addEventListener('error', function() {
+                    itemEl.classList.add('error');
+                    metaEl.textContent = formatSize(file.size);
+                    
+                    // 显示重命名标签 + error标签
+                    if (wasRenamed) {
+                        statusEl.innerHTML = '<span class="upload-status-label">重命名</span><span class="upload-status-label error">网络错误</span>';
+                    } else {
+                        statusEl.innerHTML = '<span class="upload-status-label error">网络错误</span>';
+                    }
+                    currentXhr = null;
+                    resolve(false);
+                });
+
+                xhr.addEventListener('abort', function() {
+                    itemEl.classList.add('error');
+                    metaEl.textContent = formatSize(file.size);
+                    statusEl.innerHTML = '<span class="upload-status-label error">已取消</span>';
+                    currentXhr = null;
+                    resolve(false);
+                });
+
+                let url = `/api/msc/upload?filename=${encodeURIComponent(fullPath)}`;
+                if (mtime) {
+                    url += `&mtime=${mtime}`;
+                }
+                xhr.open('POST', url);
+                xhr.setRequestHeader('Content-Type', 'application/octet-stream');
+                xhr.send(file);
+            });
+        }
+        
+        // 回到根目录
+        function goToRoot() {
+            if (isLoading) return;
+            currentDir = '';
+            getFileList();
+        }
+
+        // 获取存储状态
+        var _lastStorageData = null;
+
+        function renderStorageInfo() {
+            var data = _lastStorageData;
+            if (!data) return;
+            const sidebarEl = document.getElementById('sidebar-storage');
+            if (data.mounted && !data.error) {
+                const usedMb = data.total_mb - data.free_mb;
+                const usedPercent = Math.round((usedMb / data.total_mb) * 100);
+                sidebarEl.innerHTML = `
+                    <div class="storage-card">
+                        <div class="storage-header">
+                            <span class="storage-label">${t('storageUsedSpace')}</span>
+                            <span class="storage-percent">${usedPercent}%</span>
+                        </div>
+                        <div class="storage-bar-container">
+                            <div class="storage-bar" style="width: ${usedPercent}%;"></div>
+                        </div>
+                        <div class="storage-details">
+                            <div class="storage-row">
+                                <span class="storage-key">${t('storageCapacity')}</span>
+                                <span class="storage-value">${formatStorageSize(data.total_mb)}</span>
+                            </div>
+                            <div class="storage-row">
+                                <span class="storage-key">${t('storageUsed')}</span>
+                                <span class="storage-value">${formatStorageSize(usedMb)}</span>
+                            </div>
+                            <div class="storage-row">
+                                <span class="storage-key">${t('storageFree')}</span>
+                                <span class="storage-value">${formatStorageSize(data.free_mb)}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                sidebarEl.innerHTML = '<div style="color: var(--danger); font-size: 12px; padding: 8px 0; text-align: center;">' + t('sdNotMounted') + '</div>';
+            }
+        }
+
+        function formatStorageSize(mb) {
+            if (mb >= 1024) {
+                return (mb / 1024).toFixed(2) + ' GB';
+            }
+            return mb.toFixed(0) + ' MB';
+        }
+
+        function getStorageStatus() {
+            fetch('/api/msc/status')
+                .then(response => response.json())
+                .then(data => {
+                    _lastStorageData = data;
+                    renderStorageInfo();
+                })
+                .catch(() => {
+                    document.getElementById('sidebar-storage').innerHTML = '<div style="color: var(--danger); font-size: 12px; padding: 8px 0;">' + t('storageFetchFailed') + '</div>';
+                });
+        }
+
+        // 选中状态
+        let selectedFiles = [];
+        
+        // 长按检测
+        let pressTimer = null;
+        let isPressHandled = false;
+
+        // 获取文件列表
+        function onRefreshClick() {
+            const refreshBtn = document.querySelector('.btn[onclick="onRefreshClick()"]');
+            refreshBtn?.classList.add('spinning');
+            // 0.5s 后自动移除类名
+            setTimeout(() => {
+                refreshBtn?.classList.remove('spinning');
+            }, 500);
+            getFileList();
+        }
+
+        function getFileList() {
+            if (isLoading) return;
+            
+            isLoading = true;
+            selectedFiles = [];
+            updateButtons();
+
+            // 文件区域变暗（立即）
+            document.querySelector('.file-area')?.classList.add('loading');
+
+            let url = '/api/msc/filelist';
+            if (currentDir) {
+                url += `?dir=${encodeURIComponent(currentDir)}`;
+            }
+
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    // 缓存当前文件列表
+                    currentFileList = data.files || [];
+                    
+                    const container = document.getElementById('file-list-container');
+                    if (data.files && data.files.length > 0) {
+                        let html = '';
+                        let directories = [];
+
+                        data.files.forEach(file => {
+                            if (file.type === 'directory') {
+                                directories.push(file);
+                            }
+                        });
+
+                        // 先渲染目录（过滤系统文件夹）
+                        directories.forEach(dir => {
+                            if (dir.name === 'System Volume Information' || dir.name === '$RECYCLE.BIN') return;
+                            const timeText = formatTimestamp(dir.mtime);
+                            const tooltipName = dir.name;
+                            const tooltipTime = timeText;
+                            const tooltipHtml = `<strong>${tooltipName}</strong><br>${tooltipTime}`;
+                            html += `
+                                <div class="file-card" id="file-${dir.name}" data-name="${dir.name}" data-is-dir="true" 
+                                    data-tooltip="${tooltipHtml}" data-tooltip-name="${tooltipName}" data-tooltip-time="${tooltipTime}">
+                                    <input type="checkbox" class="file-checkbox">
+                                    <div class="file-icon">${getFileIcon(dir.name, true)}</div>
+                                    <div class="file-name">${dir.name}</div>
+                                </div>
+                            `;
+                        });
+
+                        // 再渲染文件（过滤系统文件夹）
+                        data.files.forEach(file => {
+                            if (file.type !== 'directory') {
+                                if (file.name === 'System Volume Information' || file.name === '$RECYCLE.BIN') return;
+                                const sizeText = formatSize(file.size);
+                                const timeText = formatTimestamp(file.mtime);
+                                const tooltipName = file.name;
+                                const tooltipSize = sizeText;
+                                const tooltipTime = timeText;
+                                const tooltipHtml = `<strong>${tooltipName}</strong><br>${tooltipSize}<br>${tooltipTime}`;
+                                html += `
+                                    <div class="file-card" id="file-${file.name}" data-name="${file.name}" data-is-dir="false"
+                                        data-tooltip="${tooltipHtml}" data-tooltip-name="${tooltipName}" 
+                                        data-tooltip-size="${tooltipSize}" data-tooltip-time="${tooltipTime}">
+                                        <input type="checkbox" class="file-checkbox">
+                                        <div class="file-icon">${getFileIcon(file.name, false)}</div>
+                                        <div class="file-name">${file.name}</div>
+                                    </div>
+                                `;
+                            }
+                        });
+
+                        container.innerHTML = html;
+                    } else {
+                        container.innerHTML = '<div style="grid-column: 1 / -1; color: var(--dim); text-align: center; padding: 40px;">' + t('folderEmpty') + '</div>';
+                    }
+
+                    updateCurrentPath();
+                    // 重置全选按钮图标
+                    document.getElementById('btn-select-all').innerHTML = '<svg height="20px" viewBox="0 -960 960 960" width="20px" fill="currentColor"><path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h560q33 0 56.5 23.5T840-760v560q0 33-23.5 56.5T760-120H200Zm0-80h560v-560H200v560Z"/></svg>';
+                })
+                .catch(error => {
+                    document.getElementById('file-list-container').innerHTML = '<div style="grid-column: 1 / -1; color: var(--danger); text-align: center; padding: 40px;">' + t('fileListFailed') + '</div>';
+                    console.error('Error:', error);
+                    // 重置全选按钮图标
+                    document.getElementById('btn-select-all').innerHTML = '<svg height="20px" viewBox="0 -960 960 960" width="20px" fill="currentColor"><path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h560q33 0 56.5 23.5T840-760v560q0 33-23.5 56.5T760-120H200Zm0-80h560v-560H200v560Z"/></svg>';
+                })
+                .finally(() => {
+                    // 移除加载态（请求彻底完成后）
+                    document.querySelector('.file-area.loading')?.classList.remove('loading');
+                    isLoading = false;
+                });
+        }
+
+        // 切换选中（统一入口）
+        function toggleSelected(name) {
+            if (selectedFiles.includes(name)) {
+                selectedFiles = selectedFiles.filter(f => f !== name);
+            } else {
+                selectedFiles.push(name);
+            }
+            updateCardStyle(name);
+            updateButtons();
+        }
+
+        // 更新单个卡片样式
+        function updateCardStyle(name) {
+            const card = document.getElementById('file-' + name);
+            if (!card) return;
+            const checkbox = card.querySelector('.file-checkbox');
+            if (selectedFiles.includes(name)) {
+                card.classList.add('selected');
+                checkbox.checked = true;
+            } else {
+                card.classList.remove('selected');
+                checkbox.checked = false;
+            }
+        }
+
+        // 全选/取消全选
+        function toggleSelectAll() {
+            const cards = document.querySelectorAll('.file-card');
+            const allNames = Array.from(cards).map(card => card.dataset.name);
+            const selectAllBtn = document.getElementById('btn-select-all');
+            
+            if (selectedFiles.length === cards.length && cards.length > 0) {
+                // 取消全选
+                selectedFiles = [];
+                selectAllBtn.innerHTML = '<svg height="20px" viewBox="0 -960 960 960" width="20px" fill="currentColor"><path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h560q33 0 56.5 23.5T840-760v560q0 33-23.5 56.5T760-120H200Zm0-80h560v-560H200v560Z"/></svg>';
+            } else {
+                // 全选（基于可见卡片）
+                selectedFiles = [...allNames];
+                selectAllBtn.innerHTML = '<svg height="20px" viewBox="0 -960 960 960" width="20px" fill="currentColor"><path d="m424-312 282-282-56-56-226 226-114-114-56 56 170 170ZM200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h560q33 0 56.5 23.5T840-760v560q0 33-23.5 56.5T760-120H200Zm0-80h560v-560H200v560Zm0-560v560-560Z"/></svg>';
+            }
+            
+            // 批量更新
+            cards.forEach(card => {
+                updateCardStyle(card.dataset.name);
+            });
+            updateButtons();
+        }
+
+        // 更新按钮状态
+        function updateButtons() {
+            const deleteBtn = document.getElementById('btn-delete');
+            const downloadBtn = document.getElementById('btn-download');
+            const renameBtn = document.getElementById('btn-rename');
+            const previewBtn = document.getElementById('btn-preview');
+            const moveBtn = document.getElementById('btn-move');
+            const downloadCount = document.getElementById('download-count');
+            const deleteCount = document.getElementById('delete-count');
+            
+            if (selectedFiles.length > 0) {
+                deleteBtn.disabled = false;
+                downloadBtn.disabled = false;
+                moveBtn.disabled = false;
+                downloadCount.textContent = `(${selectedFiles.length})`;
+                downloadCount.style.display = '';
+                deleteCount.textContent = `(${selectedFiles.length})`;
+                deleteCount.style.display = '';
+            } else {
+                deleteBtn.disabled = true;
+                downloadBtn.disabled = true;
+                moveBtn.disabled = true;
+                downloadCount.textContent = '';
+                downloadCount.style.display = 'none';
+                deleteCount.textContent = '';
+                deleteCount.style.display = 'none';
+            }
+            
+            // 重命名按钮仅当选中1个文件时可用
+            if (selectedFiles.length === 1) {
+                renameBtn.disabled = false;
+            } else {
+                renameBtn.disabled = true;
+            }
+
+            // 预览按钮：仅当选中1个文件且不是文件夹时可用
+            if (selectedFiles.length === 1) {
+                const name = selectedFiles[0];
+                const card = document.getElementById('file-' + name);
+                const isDir = card && card.dataset.isDir === 'true';
+                previewBtn.disabled = isDir;
+            } else {
+                previewBtn.disabled = true;
+            }
+        }
+
+        // 下载选中文件
+        function downloadSelectedFiles() {
+            if (selectedFiles.length === 0) return;
+            
+            const files = [...selectedFiles];
+            let smallFiles = [];
+            let largeFiles = [];
+            let folderCount = 0;
+            let notices = [];
+            
+            // 分类处理文件，保持选中顺序
+            for (const filename of files) {
+                const card = document.getElementById(`file-${filename}`);
+                if (card && card.dataset.isDir === 'true') {
+                    folderCount++;
+                    continue;
+                }
+                
+                const fileInfo = currentFileList.find(f => f.name === filename);
+                let fullPath = currentDir ? `${currentDir}/${filename}` : filename;
+                const isLarge = fileInfo && fileInfo.size >= LARGE_FILE_THRESHOLD;
+                
+                const fileItem = {
+                    filename, fullPath,
+                    isLarge,
+                    fileSize: fileInfo ? fileInfo.size : 0,
+                    status: 'pending', progress: 0,
+                    received: 0, total: 0,
+                    lastReceived: 0, lastTime: Date.now(), smoothSpeed: 0
+                };
+                
+                if (isLarge) {
+                    largeFiles.push(fileItem);
+                } else {
+                    smallFiles.push(fileItem);
+                }
+            }
+            
+            // 只有文件夹的情况
+            if (folderCount > 0 && smallFiles.length === 0 && largeFiles.length === 0) {
+                toast('error', t('toastHint'), t('toastNoFolderDownload'));
+                return;
+            }
+            
+            // 收集提示信息
+            if (folderCount > 0) notices.push(t('downloadSkippedFolders') + ' ' + folderCount + ' ' + t('toastItemsDeleted'));
+            
+            // 小文件在前，大文件在后
+            downloadQueue = [...smallFiles, ...largeFiles];
+            showDownloadProgressPanel(notices);
+            
+            // 开始处理下载队列，大文件会在小文件全部下载完成后触发
+            // 清除上一轮大文件下载残留的 busy 状态，否则 processDownloadQueue 会直接返回
+            if (isDownloading) {
+                isDownloading = false;
+                notifyParentBusy();
+            }
+            processDownloadQueue(largeFiles);
+        }
+
+        // 跳转到指定路径
+        function jumpToPath(targetPath) {
+            if (isLoading) return;
+            currentDir = targetPath;
+            getFileList();
+        }
+
+        // 进入目录
+        function enterDirectory(dirName) {
+            if (isLoading) return;
+            if (currentDir) {
+                currentDir += '/' + dirName;
+            } else {
+                currentDir = dirName;
+            }
+            getFileList();
+        }
+
+        // 返回上级目录
+        function goToParentDir() {
+            if (isLoading) return;
+            if (currentDir) {
+                const parts = currentDir.split('/');
+                parts.pop();
+                currentDir = parts.join('/');
+                getFileList();
+            }
+        }
+
+        // 更新面包屑导航
+        function updateCurrentPath() {
+            const breadcrumb = document.getElementById('breadcrumb');
+            const backButton = document.getElementById('btn-back');
+
+            let html = '';
+
+            // 根目录
+            html += `<span class="crumb" onclick="goToRoot()">${t('crumbRoot')}</span>`;
+
+            // 如果有当前目录
+            if (currentDir) {
+                const parts = currentDir.split('/');
+                let pathSoFar = '';
+                parts.forEach((part, i) => {
+                    pathSoFar += (i > 0 ? '/' : '') + part;
+                    html += `<span class="crumb-separator">›</span>`;
+                    html += `<span class="crumb" onclick="jumpToPath('${pathSoFar}')">${part}</span>`;
+                });
+                backButton.disabled = false;
+            } else {
+                backButton.disabled = true;
+            }
+
+            breadcrumb.innerHTML = html;
+        }
+
+        // 根据文件名获取图标
+        function getFileIcon(filename, isDir) {
+            if (isDir) return FILE_ICONS.dir;
+            
+            const ext = filename.split('.').pop().toLowerCase();
+            const imgExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
+            const videoExts = ['mp4', 'mkv', 'avi', 'mov'];
+            const audioExts = ['mp3', 'wav', 'flac'];
+            const codeExts = ['js', 'html', 'css', 'c', 'cpp', 'py', 'h', 'json', 'md', 'ino'];
+            const zipExts = ['zip', 'rar', '7z', 'tar', 'gz'];
+            const docExts = ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'txt'];
+            
+            if (imgExts.includes(ext)) return FILE_ICONS.img;
+            if (videoExts.includes(ext)) return FILE_ICONS.video;
+            if (audioExts.includes(ext)) return FILE_ICONS.audio;
+            if (codeExts.includes(ext)) return FILE_ICONS.code;
+            if (zipExts.includes(ext)) return FILE_ICONS.zip;
+            if (docExts.includes(ext)) return FILE_ICONS.doc;
+            if (ext === 'pdf') return FILE_ICONS.pdf;
+            if (ext === 'exe') return FILE_ICONS.exe;
+            if (ext === 'bin') return FILE_ICONS.bin;
+            
+            return FILE_ICONS.file;
+        }
+
+        // 格式化文件大小
+        function formatSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        // 格式化时间戳（显示本地时间）- 后端UTC → -8小时 → 前端本地
+        function formatTimestamp(timestamp) {
+            if (!timestamp) return '';
+            const utcTime = timestamp * 1000;
+            const timezoneOffset = 8 * 60 * 60 * 1000; // UTC+8 时区偏移（毫秒）
+            const date = new Date(utcTime - timezoneOffset); // -8小时显示本地时间
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            return `${year}-${month}-${day} ${hours}:${minutes}`;
+        }
+
+        // 获取当前时间戳（秒）- 前端本地时间 → +8小时 → 存到后端
+        function getCurrentTimestamp() {
+            const localTime = Date.now();
+            const timezoneOffset = 8 * 60 * 60 * 1000; // UTC+8 时区偏移（毫秒）
+            return Math.floor((localTime + timezoneOffset) / 1000);
+        }
+
+        // 显示下载进度面板
+    function showDownloadProgressPanel(notices = []) {
+        const panel = document.getElementById('download-progress-panel');
+        const list = document.getElementById('download-progress-list');
+        const noticeEl = document.getElementById('download-notice');
+        
+        let html = '';
+        for (let i = 0; i < downloadQueue.length; i++) {
+            html += createDownloadItemHTML(downloadQueue[i], i);
+        }
+        list.innerHTML = html;
+        
+        // 显示提示信息
+        if (notices.length > 0) {
+            noticeEl.style.display = 'flex';
+            noticeEl.style.alignItems = 'center';
+            noticeEl.innerHTML = notices.map(n => 
+                `<div style="margin-bottom: 4px; font-size: 12px; color: var(--dim);">${n}</div>`
+            ).join('');
+        } else {
+            noticeEl.style.display = 'none';
+        }
+        
+        panel.style.display = 'block';
+    }
+
+    // 公共函数：获取下载项显示信息
+    function getDownloadItemDisplay(item) {
+        const statusMap = {
+            pending: t('statusPending'),
+            connecting: t('statusConnecting'),
+            saving: t('statusSaving'),
+            completed: t('statusCompleted'),
+            error: t('statusError'),
+            cancelled: t('statusCancelled')
+        };
+        
+        let statusText = statusMap[item.status] || '';
+        let statusClass = '';
+        let progressWidth = item.progress;
+        
+        if (item.isLarge) {
+            progressWidth = 0;
+            statusText = `${t('statusPending')} · ${t('statusBrowserTakeover')} · ${formatSize(item.fileSize)}`;
+        } else if (item.status === 'downloading') {
+            statusText = `${item.progress}% - ${formatSize(item.received)} / ${formatSize(item.total)} · ${formatSpeed(item.smoothSpeed)}`;
+        }
+        
+        if (['saving', 'completed'].includes(item.status)) {
+            statusClass = 'success';
+        } else if (['error', 'cancelled'].includes(item.status)) {
+            statusClass = 'error';
+        }
+        
+        return { statusText, statusClass, progressWidth };
+    }
+
+    // 创建下载项HTML
+    function createDownloadItemHTML(item, index) {
+        const { statusText, statusClass, progressWidth } = getDownloadItemDisplay(item);
+        
+        return `
+            <div class="upload-progress-item ${statusClass}" id="download-item-${index}">
+                <div class="upload-progress-bg" style="width: ${progressWidth}%"></div>
+                <div class="upload-progress-row">
+                    <div class="upload-file-info">
+                        <div class="upload-file-name" title="${item.filename}">${item.filename}</div>
+                        <div class="upload-file-meta" id="download-meta-${index}">${statusText}</div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // 格式化速度
+    function formatSpeed(bytesPerSecond) {
+        if (bytesPerSecond < 1024) {
+            return bytesPerSecond.toFixed(0) + ' B/s';
+        } else if (bytesPerSecond < 1024 * 1024) {
+            return (bytesPerSecond / 1024).toFixed(1) + ' KB/s';
+        } else {
+            return (bytesPerSecond / (1024 * 1024)).toFixed(1) + ' MB/s';
+        }
+    }
+
+    // 更新下载进度UI
+    function updateDownloadProgressUI(index, item) {
+        const itemEl = document.getElementById(`download-item-${index}`);
+        if (!itemEl) return;
+        
+        const { statusText, statusClass, progressWidth } = getDownloadItemDisplay(item);
+        
+        itemEl.querySelector('.upload-progress-bg').style.width = `${progressWidth}%`;
+        document.getElementById(`download-meta-${index}`).textContent = statusText;
+        
+        itemEl.classList.remove('success', 'error');
+        if (statusClass) {
+            itemEl.classList.add(statusClass);
+        }
+    }
+
+    // 触发浏览器下载
+    function triggerBrowserDownload(url, filename) {
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    }
+
+    // 处理下载队列
+    async function processDownloadQueue(largeFiles = []) {
+        if (isDownloading || downloadQueue.length === 0) return;
+        
+        isDownloading = true;
+        notifyParentBusy();
+        downloadCancelled = false;
+        const cancelBtn = document.getElementById('btn-cancel-download');
+        if (cancelBtn) cancelBtn.style.display = 'inline-block';
+        
+        // 处理小文件
+        for (let i = 0; i < downloadQueue.length; i++) {
+            const item = downloadQueue[i];
+            if (downloadCancelled) {
+                item.status = 'cancelled';
+                updateDownloadProgressUI(i, item);
+                continue;
+            }
+            if (!item.isLarge) {
+                await downloadSingleFile(i);
+            }
+        }
+        
+        // 小文件全部下载完成后，触发大文件浏览器下载
+        if (!downloadCancelled && largeFiles.length > 0) {
+            // 大文件走浏览器原生下载，JS 无法跟踪/中止，仅隐藏取消按钮
+            if (cancelBtn) cancelBtn.style.display = 'none';
+            largeFiles.forEach(item => {
+                item.status = 'downloading';
+                const url = `/api/msc/download?filename=${encodeURIComponent(item.fullPath)}`;
+                triggerBrowserDownload(url, item.filename);
+            });
+            // 保持 busy 不清除，用户可通过侧边栏切走页面来清除
+            setTimeout(function() {
+              document.getElementById('download-progress-panel').style.display = 'none';
+              downloadQueue = [];
+            }, 5000);
+        } else {
+            isDownloading = false;
+            notifyParentBusy();
+            if (cancelBtn) cancelBtn.style.display = 'none';
+            setTimeout(function() {
+              document.getElementById('download-progress-panel').style.display = 'none';
+              downloadQueue = [];
+            }, 2000);
+        }
+    }
+
+    // 下载单个文件（仅小文件）
+    function downloadSingleFile(index) {
+        return new Promise((resolve) => {
+            const item = downloadQueue[index];
+            
+            // 小文件：XHR 进度下载
+            item.status = 'connecting';
+            item.lastReceived = 0;
+            item.lastTime = Date.now();
+            item.smoothSpeed = 0;
+            updateDownloadProgressUI(index, item);
+            
+            const url = `/api/msc/download?filename=${encodeURIComponent(item.fullPath)}`;
+            const xhr = new XMLHttpRequest();
+            currentXhrDownload = xhr;
+            xhr.responseType = 'blob';
+            
+            xhr.onprogress = (e) => {
+                if (e.lengthComputable) {
+                    item.total = e.total;
+                    item.received = e.loaded;
+                    item.progress = Math.round((e.loaded / e.total) * 100);
+                    
+                    const now = Date.now();
+                    const timeDiff = (now - item.lastTime) / 1000;
+                    if (timeDiff > 0.1) {
+                        const currentSpeed = (item.received - item.lastReceived) / timeDiff;
+                        item.smoothSpeed = item.smoothSpeed * 0.8 + currentSpeed * 0.2;
+                        item.lastReceived = item.received;
+                        item.lastTime = now;
+                    }
+                    
+                    updateDownloadProgressUI(index, item);
+                }
+            };
+            
+            const finish = (status) => {
+                if (status === 'saving' && xhr.status === 200) {
+                    item.status = 'saving';
+                    updateDownloadProgressUI(index, item);
+                    
+                    const blobUrl = URL.createObjectURL(xhr.response);
+                    triggerBrowserDownload(blobUrl, item.filename);
+                    URL.revokeObjectURL(blobUrl);
+                    
+                    item.status = 'completed';
+                    item.progress = 100;
+                } else {
+                    item.status = status;
+                }
+                
+                updateDownloadProgressUI(index, item);
+                currentXhrDownload = null;
+                resolve();
+            };
+            
+            xhr.onload = () => finish(xhr.status === 200 ? 'saving' : 'error');
+            xhr.onerror = () => finish('error');
+            xhr.onabort = () => finish('cancelled');
+            
+            xhr.open('GET', url);
+            xhr.send();
+            item.status = 'downloading';
+            updateDownloadProgressUI(index, item);
+        });
+    }
+
+    // 取消下载
+    function cancelDownload() {
+        if (!isDownloading) return;
+        
+        downloadCancelled = true;
+        if (currentXhrDownload) {
+            currentXhrDownload.abort();
+        }
+        isDownloading = false;
+        notifyParentBusy();
+        var cancelBtn = document.getElementById('btn-cancel-download');
+        if (cancelBtn) cancelBtn.style.display = 'none';
+        setTimeout(function() {
+            document.getElementById('download-progress-panel').style.display = 'none';
+            downloadQueue = [];
+        }, 2000);
+    }
+
+        // 重启 MSC
+        function restartMSC(isManual = false) {
+            const restartBtn = document.getElementById('restart-btn');
+            
+            // 检查自动重启状态，如果开启时不能手动触发
+            if (isManual && autoRestartEnabled) {
+                return;
+            }
+            
+            // 禁用按钮防止重复点击（仅手动触发时）
+            if (isManual) {
+                restartBtn.disabled = true;
+            }
+
+            fetch('/api/msc/restart', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.ok && isManual) {
+                        toast('success', t('toastUsbRestartSuccess'), t('toastUsbRestartSuccessMsg'));
+                    } else if (!data.ok && isManual) {
+                        toast('error', t('toastRestartFailed'), data.message || t('toastUnknownError'));
+                    }
+                })
+                .catch(error => {
+                    if (isManual) {
+                        toast('error', t('toastRestartFailed'), t('toastNetworkErrorShort'));
+                    }
+                    console.error(error);
+                })
+                .finally(() => {
+                    // 恢复按钮状态（但要根据自动重启状态）
+                    if (isManual) {
+                        restartBtn.disabled = autoRestartEnabled;
+                    }
+                });
+        }
+
+        // 切换自动重启
+        function toggleAutoRestart() {
+            autoRestartEnabled = document.getElementById('auto-restart-toggle').checked;
+            const restartBtn = document.getElementById('restart-btn');
+            if (autoRestartEnabled) {
+                restartBtn.disabled = true;
+            } else {
+                restartBtn.disabled = false;
+            }
+        }
+
+        // 通用弹窗系统
+        let toastTimeout = null;
+        function showPopup(type, title, message, progress) {
+            const popup = document.getElementById('toast-popup');
+            const titleEl = document.getElementById('toast-title');
+            const messageEl = document.getElementById('toast-message');
+            const infoEl = document.getElementById('toast-info');
+            const progressBar = document.getElementById('toast-progress-bar');
+            const progressFill = document.getElementById('toast-progress-fill');
+
+            // 清除旧淡出定时器
+            if (toastTimeout) {
+                clearTimeout(toastTimeout);
+                popup.classList.remove('fade-out');
+            }
+
+            // 重置类名
+            popup.className = 'toast-popup';
+
+            if (type === 'success') {
+                popup.classList.add('toast-success');
+                titleEl.textContent = title;
+                messageEl.textContent = message;
+                infoEl.textContent = '';
+                progressBar.style.display = 'none';
+                progressFill.style.width = '0%';
+            } else if (type === 'error') {
+                popup.classList.add('toast-error');
+                titleEl.textContent = title;
+                messageEl.textContent = message;
+                infoEl.textContent = '';
+                progressBar.style.display = 'none';
+                progressFill.style.width = '0%';
+            } else if (type === 'progress') {
+                popup.classList.add('toast-progress');
+                titleEl.textContent = title;
+                messageEl.textContent = message;
+                infoEl.textContent = progress.info || '';
+                progressBar.style.display = 'block';
+                progressFill.style.width = (progress.percent || 0) + '%';
+            } else if (type === 'info') {
+                popup.classList.add('toast-info');
+                titleEl.textContent = title;
+                messageEl.textContent = message;
+                infoEl.textContent = '';
+                progressBar.style.display = 'none';
+            } else {
+                popup.classList.add('toast-info');
+                titleEl.textContent = title;
+                messageEl.textContent = message;
+                infoEl.textContent = '';
+                progressBar.style.display = 'none';
+            }
+
+            popup.style.display = 'block';
+            popup.style.opacity = '1';
+        }
+
+        function hidePopup() {
+            const popup = document.getElementById('toast-popup');
+            popup.classList.add('fade-out');
+            setTimeout(() => {
+                popup.style.display = 'none';
+                popup.classList.remove('fade-out');
+            }, 500);
+        }
+
+        function toast(type, title, message) {
+            showPopup(type, title, message);
+            setTimeout(() => hidePopup(), 3000);
+        }
+
+        // 自定义确认对话框
+        function showConfirm(options) {
+            return new Promise((resolve) => {
+                const { title, content, showInput = false, defaultValue = '' } = options;
+                const dialog = document.getElementById('custom-dialog');
+                const dialogTitle = document.getElementById('dialog-title');
+                const dialogContent = document.getElementById('dialog-content');
+                const dialogInput = document.getElementById('dialog-input');
+                const btnConfirm = document.getElementById('dialog-confirm');
+                const btnCancel = document.getElementById('dialog-cancel');
+                
+                dialogTitle.textContent = title;
+                dialogContent.textContent = content;
+                
+                if (showInput) {
+                    dialogInput.style.display = 'block';
+                    dialogInput.value = defaultValue;
+                    dialogInput.focus();
+                } else {
+                    dialogInput.style.display = 'none';
+                }
+                
+                dialog.style.display = 'flex';
+                setTimeout(() => {
+                    dialog.classList.add('show');
+                }, 10);
+                
+                let resolved = false;
+                
+                function handleConfirm() {
+                    if (resolved) return;
+                    resolved = true;
+                    const result = showInput ? dialogInput.value : true;
+                    closeDialog(() => resolve(result));
+                }
+                
+                function handleCancel() {
+                    if (resolved) return;
+                    resolved = true;
+                    closeDialog(() => resolve(null));
+                }
+                
+                function closeDialog(callback) {
+                    dialog.classList.remove('show');
+                    setTimeout(() => {
+                        dialog.style.display = 'none';
+                        if (callback) callback();
+                    }, 300);
+                }
+                
+                btnConfirm.onclick = handleConfirm;
+                btnCancel.onclick = handleCancel;
+                
+                // 点击遮罩层关闭
+                dialog.onclick = function(e) {
+                    if (e.target === dialog) {
+                        handleCancel();
+                    }
+                };
+                
+                // 按 ESC 键关闭
+                document.addEventListener('keydown', function escHandler(e) {
+                    if (e.key === 'Escape') {
+                        handleCancel();
+                        document.removeEventListener('keydown', escHandler);
+                    }
+                });
+            });
+        }
+        
+        // 执行删除操作
+        async function executeDeletion(fileNames) {
+            const result = await showConfirm({
+                title: t('confirmDeleteTitle'),
+                content: t('confirmDeleteContent') + ' ' + fileNames.length + ' ' + t('toastItemsDeleted') + '?'
+            });
+            
+            if (result) {
+                const filesJson = JSON.stringify({ files: fileNames, dir: currentDir });
+
+                fetch('/api/msc/batch-delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: filesJson
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.ok) {
+                            if (autoRestartEnabled) {
+                                restartMSC();
+                            }
+                            getFileList();
+                            getStorageStatus();
+                            toast('success', t('toastDeleteSuccess'), fileNames.length + ' ' + t('toastItemsDeleted'));
+                        } else {
+                            toast('error', t('toastDeleteFailed'), data.message || t('toastSomeFilesFailed'));
+                        }
+                    })
+                    .catch(error => {
+                        toast('error', t('toastDeleteFailed'), t('toastNetworkError'));
+                        console.error(error);
+                    });
+            }
+        }
+        
+        // 修改删除单个文件函数
+        async function deleteFile(fileName) {
+            await executeDeletion([fileName]);
+        }
+        
+        // 修改删除选中文件函数
+        async function deleteSelectedFiles() {
+            if (selectedFiles.length === 0) return;
+            await executeDeletion([...selectedFiles]);
+        }
+        
+        // 修改新建文件夹函数
+        async function createFolder() {
+            const name = await showConfirm({
+                title: '新建文件夹',
+                content: '请输入文件夹名称:',
+                showInput: true,
+                defaultValue: '新建文件夹'
+            });
+            
+            if (!name) return;
+            if (/[\\/:*?"<>|]/.test(name)) {
+                toast('error', t('toastInvalidName'), t('toastInvalidFolderNameMsg'));
+                return;
+            }
+            
+            const btn = document.querySelector('#btn-new-folder');
+            btn.disabled = true;
+            
+            // 获取时间戳（浏览器本地时间）
+            const mtime = getCurrentTimestamp();
+            
+            fetch('/api/msc/mkdir', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ dir: currentDir, name: name, mtime: mtime })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.ok) {
+                        toast('success', t('toastCreateSuccess'), t('toastCreateSuccessMsg'));
+                        if (autoRestartEnabled) {
+                            restartMSC();
+                        }
+                        getFileList();
+                    } else {
+                        toast('error', t('toastCreateFailed'), data.message || t('toastOperationFailed'));
+                    }
+                })
+                .catch(error => {
+                    toast('error', t('toastCreateFailed'), t('toastNetworkErrorShort'));
+                    console.error(error);
+                })
+                .finally(() => {
+                    btn.disabled = false;
+                });
+        }
+        
+        // 修改重命名函数
+        async function renameFile() {
+            if (selectedFiles.length !== 1) return;
+            
+            const oldName = selectedFiles[0];
+            const fileCard = document.getElementById(`file-${oldName}`);
+            const isDir = fileCard?.dataset.isDir === 'true';
+            
+            // 步骤1: 获取新名称
+            let newName = await showConfirm({
+                title: t('commonRename'),
+                content: '请输入新名称:',
+                showInput: true,
+                defaultValue: oldName
+            });
+            
+            if (!newName || newName === oldName) return;
+            if (/[\\/:*?"<>|]/.test(newName)) {
+                toast('error', t('toastInvalidName'), t('toastInvalidFileNameMsg'));
+                return;
+            }
+            
+            // 步骤2: 如果是文件夹，直接跳到步骤4
+            if (isDir) {
+                // 直接执行重命名
+                await performRename(oldName, newName);
+                return;
+            }
+            
+            // 步骤3: 是文件，执行后缀保护逻辑
+            // 分离原文件名的主文件名和后缀名
+            let originalBaseName = oldName;
+            let originalExtension = '';
+            const lastDotIndex = oldName.lastIndexOf('.');
+            if (lastDotIndex > 0) {
+                originalBaseName = oldName.substring(0, lastDotIndex);
+                originalExtension = oldName.substring(lastDotIndex);
+            }
+            
+            // 自动补全逻辑：如果用户输入不包含点号，自动拼上原始后缀
+            const newNameHasDot = newName.includes('.');
+            if (!newNameHasDot && originalExtension) {
+                newName = newName + originalExtension;
+            }
+            
+            // 检查后缀是否变更
+            if (newNameHasDot && originalExtension) {
+                const newLastDotIndex = newName.lastIndexOf('.');
+                const newExtension = newName.substring(newLastDotIndex);
+                
+                if (newExtension.toLowerCase() !== originalExtension.toLowerCase()) {
+                    // 添加延迟保护，避免DOM渲染冲突
+                    await new Promise(r => setTimeout(r, 100));
+                    
+                    // 后缀变更，提示用户确认
+                    const confirmChange = await showConfirm({
+                        title: '警告',
+                        content: '检测到扩展名变更，这可能导致文件无法打开，确定要修改吗？'
+                    });
+                    
+                    if (!confirmChange) {
+                        return;
+                    }
+                }
+            }
+            
+            // 步骤4: 执行重命名操作
+            await performRename(oldName, newName);
+        }
+        
+        // 执行重命名操作
+        async function performRename(oldName, newName) {
+            const btn = document.getElementById('btn-rename');
+            btn.disabled = true;
+            
+            try {
+                // 获取时间戳（浏览器本地时间）
+                const mtime = getCurrentTimestamp();
+                
+                const response = await fetch('/api/msc/rename', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ dir: currentDir, oldName: oldName, newName: newName, mtime: mtime })
+                });
+                
+                const data = await response.json();
+                
+                if (data.ok) {
+                    toast('success', t('toastRenameSuccess'), oldName + ' -> ' + newName);
+                    if (autoRestartEnabled) {
+                        restartMSC();
+                    }
+                    getFileList();
+                } else {
+                    toast('error', t('toastRenameFailed'), data.message || t('toastOperationFailed'));
+                }
+            } catch (error) {
+                toast('error', t('toastRenameFailed'), t('toastNetworkErrorShort'));
+                console.error(error);
+            } finally {
+                btn.disabled = (selectedFiles.size !== 1);
+            }
+        }
+
+        // ========== 移动文件功能 ==========
+        let moveDir = '';
+        let moveTargetDir = '';
+
+        function showMoveDialog() {
+            const dialog = document.getElementById('move-dialog');
+            document.getElementById('move-dialog-title').textContent = 
+                selectedFiles.length > 1 ? t('moveTitleMulti') + ' ' + selectedFiles.length + ' ' + t('toastItemsMoved') : t('moveTitleSingle');
+            moveDir = '';
+            moveTargetDir = '';
+            loadMoveDirList();
+            dialog.style.display = 'flex';
+            setTimeout(() => dialog.classList.add('show'), 10);
+
+            document.getElementById('move-dialog-cancel').onclick = closeMoveDialog;
+            document.getElementById('move-dialog-confirm').onclick = () => {
+                moveTargetDir = moveDir;
+                closeMoveDialog();
+                executeMove();
+            };
+            dialog.onclick = function(e) { if (e.target === dialog) closeMoveDialog(); };
+
+            document.addEventListener('keydown', function escHandler(e) {
+                if (e.key === 'Escape') { closeMoveDialog(); document.removeEventListener('keydown', escHandler); }
+            });
+        }
+
+        function closeMoveDialog() {
+            const dialog = document.getElementById('move-dialog');
+            dialog.classList.remove('show');
+            setTimeout(() => { dialog.style.display = 'none'; }, 300);
+        }
+
+        function moveNavigateTo(dir) {
+            moveDir = dir;
+            loadMoveDirList();
+        }
+
+        async function loadMoveDirList() {
+            const listEl = document.getElementById('move-dir-list');
+            const pathBar = document.getElementById('move-path-bar');
+            listEl.innerHTML = '<div style="text-align:center;color:var(--dim);padding:20px;">' + t('moveLoading') + '</div>';
+
+            // 更新面包屑
+            let pathHtml = '<span style="cursor:pointer;color:var(--primary);flex-shrink:0;" onclick="moveNavigateTo(\'\')">' + t('crumbRoot') + '</span>';
+             if (moveDir) {
+                 const parts = moveDir.split('/');
+                 let accum = '';
+                 for (const part of parts) {
+                     accum = accum ? accum + '/' + part : part;
+                     pathHtml += ' <span style="color:var(--dim);flex-shrink:0;">›</span> <span style="cursor:pointer;color:var(--primary);flex-shrink:0;" onclick="moveNavigateTo(\'' + accum + '\')">' + part + '</span>';
+                 }
+             }
+            pathBar.innerHTML = pathHtml;
+
+            // 获取目录列表
+            let url = '/api/msc/filelist';
+            if (moveDir) url += '?dir=' + encodeURIComponent(moveDir);
+
+            try {
+                const resp = await fetch(url);
+                const data = await resp.json();
+                const files = data.files || [];
+                const dirs = files.filter(f => f.type === 'directory' && f.name !== 'System Volume Information');
+
+                if (dirs.length === 0) {
+                    listEl.innerHTML = '<div style="text-align:center;color:var(--dim);padding:20px;">' + t('moveNoSubfolder') + '</div>';
+                    return;
+                }
+
+                let html = '';
+                dirs.forEach(dir => {
+                    const subDir = moveDir ? moveDir + '/' + dir.name : dir.name;
+                    const safeSubDir = subDir.replace(/'/g, "\\'");
+                    html += '<div style="display:flex;align-items:center;gap:10px;padding:10px 8px;cursor:pointer;border-radius:4px;font-size:14px;color:var(--text);" ' +
+                        'onmouseenter="this.style.background=\'var(--hover)\'" onmouseleave="this.style.background=\'transparent\'" ' +
+                        'onclick="moveNavigateTo(\'' + safeSubDir + '\')">' +
+                        '📁 ' + dir.name + '</div>';
+                });
+                listEl.innerHTML = html;
+            } catch (e) {
+                listEl.innerHTML = '<div style="text-align:center;color:var(--danger);padding:20px;">' + t('moveLoadFailed') + '</div>';
+            }
+        }
+
+        async function executeMove() {
+            if (selectedFiles.length === 0) return;
+            const targetDir = moveTargetDir !== undefined ? moveTargetDir : '';
+            
+            if (targetDir === currentDir) {
+                toast('error', t('toastMoveFailed'), t('toastMoveToCurrentDir'));
+                return;
+            }
+
+            const resp = await fetch('/api/msc/move', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    files: [...selectedFiles],
+                    sourceDir: currentDir,
+                    targetDir: targetDir
+                })
+            });
+
+            const data = await resp.json();
+            if (data.ok) {
+                toast('success', t('toastMoveSuccess'), data.moved + ' ' + t('toastItemsMoved'));
+                selectedFiles = [];
+                updateButtons();
+                if (autoRestartEnabled) restartMSC();
+                getFileList();
+            } else {
+                toast('error', t('toastMoveFailed'), data.message || t('toastOperationFailed'));
+            }
+        }
+
+        // i18n 应用语言翻译
+        function applyLanguage() {
+            document.querySelectorAll('[data-i18n]').forEach(function(el) {
+                el.textContent = t(el.dataset.i18n);
+            });
+            document.querySelectorAll('[data-i18n-title]').forEach(function(el) {
+                el.title = t(el.dataset.i18nTitle);
+            });
+            if (document.querySelector('title[data-i18n]')) {
+                document.title = t(document.querySelector('title').dataset.i18n);
+            }
+            if (typeof updateCurrentPath === 'function') {
+                updateCurrentPath();
+            }
+            if (typeof renderStorageInfo === 'function') {
+                renderStorageInfo();
+            }
+        }
+    </script>
+    
+    <!-- 自定义tooltip -->
+    <div id="custom-tooltip" class="custom-tooltip"></div>
+    
+    <!-- 自定义对话框 -->
+    <div id="custom-dialog" class="dialog-overlay">
+        <div class="dialog-container">
+            <div class="dialog-header">
+                <h3 id="dialog-title" class="dialog-title" data-i18n="confirmTitle"></h3>
+            </div>
+            <div class="dialog-body">
+                <div id="dialog-content" class="dialog-content"></div>
+                <input type="text" id="dialog-input" class="dialog-input">
+            </div>
+            <div class="dialog-footer">
+                <button id="dialog-cancel" class="mini-btn" data-i18n="cancel"></button>
+                <button id="dialog-confirm" class="mini-btn primary" data-i18n="ok"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 移动文件对话框 -->
+    <div id="move-dialog" class="dialog-overlay">
+        <div class="dialog-container" style="max-width: 440px;">
+            <div class="dialog-header">
+                <h3 id="move-dialog-title" class="dialog-title" data-i18n="commonMove"></h3>
+            </div>
+            <div class="dialog-body" style="padding: 12px 20px;">
+                <div id="move-path-bar" style="display: flex; align-items: center; gap: 4px; padding: 8px 0; font-size: 13px; color: var(--text); border-bottom: 1px solid var(--border); margin-bottom: 8px; overflow-x: auto; white-space: nowrap; scrollbar-width: none;">
+                    <span style="cursor:pointer;color:var(--primary);flex-shrink:0;" onclick="moveNavigateTo('')" data-i18n="crumbRoot"></span>
+                </div>
+                <div id="move-dir-list" style="max-height: 240px; overflow-y: auto; min-height: 60px;">
+                    <div style="text-align:center;color:var(--dim);padding:20px;" data-i18n="moveLoading"></div>
+                </div>
+            </div>
+            <div class="dialog-footer">
+                <button id="move-dialog-cancel" class="mini-btn" data-i18n="cancel"></button>
+                <button id="move-dialog-confirm" class="mini-btn primary" data-i18n="moveHere"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 上传弹窗 -->
+    <div id="upload-dialog" class="dialog-overlay">
+        <div class="dialog-container upload-dialog-container">
+            <div class="dialog-header">
+                <h3 data-i18n="commonUpload"></h3>
+            </div>
+            <div class="dialog-body">
+                <div class="upload-dialog-area" id="upload-dialog-area">
+                    <input type="file" id="file-input" multiple>
+                    <div class="upload-dialog-content">
+                        <svg height="48px" viewBox="0 -960 960 960" width="48px" fill="var(--primary)"><path d="M440-320v-326L336-542l-56-58 200-200 200 200-56 58-104-104v326h-80ZM240-160q-33 0-56.5-23.5T160-240v-120h80v120h480v-120h80v120q0 33-23.5 56.5T720-160H240Z"/></svg>
+                        <p style="font-size: 16px; font-weight: 500; color: var(--text); margin-top: 12px;" data-i18n="uploadDragText"></p>
+                        <p style="color: var(--dim); font-size: 14px; margin-top: 8px;" data-i18n="uploadClickHint"></p>
+                    </div>
+                </div>
+            </div>
+            <div class="dialog-footer">
+                <button id="upload-dialog-cancel" class="mini-btn" data-i18n="cancel"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 上传进度面板 -->
+    <div id="upload-progress-panel" class="toast-popup" style="display: none; padding: 0; width: 360px; max-width: 90vw; bottom: 20px; right: 20px; overflow: hidden;">
+        <div style="padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between;">
+            <span style="font-weight: 600; color: var(--text);" data-i18n="uploadTitle"></span>
+            <div style="display: flex; align-items: center; gap: 6px;">
+                <button id="btn-cancel-upload" onclick="cancelUpload()" style="background: var(--card); border: 1px solid var(--danger); cursor: pointer; padding: 4px 12px; border-radius: 4px; color: var(--danger); font-size: 12px; font-weight: 500; line-height: 1.5;" data-i18n="uploadCancel"></button>
+            </div>
+        </div>
+        <div id="upload-progress-list" style="max-height: 300px; overflow-y: auto; overflow-x: hidden;"></div>
+    </div>
+
+    <!-- 下载进度面板 -->
+    <div id="download-progress-panel" class="toast-popup" style="display: none; padding: 0; width: 360px; max-width: 90vw; bottom: 20px; right: 20px; overflow: hidden; z-index: 2000;">
+        <div style="padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between;">
+            <span style="font-weight: 600; color: var(--text);" data-i18n="downloadTitle"></span>
+            <div style="display: flex; align-items: center; gap: 6px;">
+                <button id="btn-cancel-download" onclick="cancelDownload()" style="background: var(--card); border: 1px solid var(--danger); cursor: pointer; padding: 4px 12px; border-radius: 4px; color: var(--danger); font-size: 12px; font-weight: 500; line-height: 1.5;" data-i18n="downloadCancel"></button>
+            </div>
+        </div>
+        <div id="download-notice" style="padding: 10px 16px; border-bottom: 1px solid var(--border); display: none; min-height: 40px;"></div>
+        <div id="download-progress-list" style="max-height: 300px; overflow-y: auto; overflow-x: hidden;"></div>
+    </div>
+
+    <!-- 右键菜单 -->
+    <div id="context-menu">
+        <div class="menu-item" id="menu-rename">
+            <svg class="menu-item-icon" height="18px" viewBox="0 0 1024 1024" width="18px" fill="currentColor"><path d="M416 85.333333h170.581333a32 32 0 0 1 4.352 63.701334l-4.352 0.298666H533.333333v725.333334h53.12a32 32 0 0 1 31.701334 27.648l0.298666 4.352a32 32 0 0 1-27.648 31.701333l-4.352 0.298667H416a32 32 0 0 1-4.352-63.701334l4.352-0.298666H469.333333v-725.333334H416a32 32 0 0 1-31.701333-27.648L384 117.333333a32 32 0 0 1 27.648-31.701333L416 85.333333h170.581333H416z m362.496 127.872a138.794667 138.794667 0 0 1 138.666667 138.666667l0.170666 320.170667a138.624 138.624 0 0 1-130.730666 138.496l-7.936 0.213333h-202.453334v-64h204.928A74.624 74.624 0 0 0 853.333333 672.042667l-0.128-320.213334a74.794667 74.794667 0 0 0-74.752-74.666666h-202.24v-64h202.24z m-351.829333 0v64H224a74.666667 74.666667 0 0 0-74.666667 74.666667v320.170667c0 41.258667 33.450667 74.666667 74.666667 74.666666h202.453333v64H224A138.666667 138.666667 0 0 1 85.333333 672.042667V351.872a138.666667 138.666667 0 0 1 138.666667-138.666667H426.666667z"></path></svg>
+            <span data-i18n="commonRename"></span>
+        </div>
+        <div class="menu-item" id="menu-download">
+            <svg class="menu-item-icon" height="18px" viewBox="0 -960 960 960" width="18px" fill="currentColor"><path d="M480-320 280-520l56-58 104 104v-326h80v326l104-104 56 58-200 200ZM240-160q-33 0-56.5-23.5T160-240v-120h80v120h480v-120h80v120q0 33-23.5 56.5T720-160H240Z"/></svg>
+            <span data-i18n="commonDownload"></span>
+        </div>
+        <div class="menu-item" id="menu-preview">
+            <svg class="menu-item-icon" height="18px" viewBox="0 -960 960 960" width="18px" fill="currentColor"><path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h560q33 0 56.5 23.5T840-760v560q0 33-23.5 56.5T760-120H200Zm0-80h560v-480H200v480Zm133.5-124.5Q269-369 240-440q29-71 93.5-115.5T480-600q82 0 146.5 44.5T720-440q-29 71-93.5 115.5T480-280q-82 0-146.5-44.5Zm248.5-42q46-26.5 72-73.5-26-47-72-73.5T480-540q-56 0-102 26.5T306-440q26 47 72 73.5T480-340q56 0 102-26.5ZM480-440Zm42.5 42.5Q540-415 540-440t-17.5-42.5Q505-500 480-500t-42.5 17.5Q420-465 420-440t17.5 42.5Q455-380 480-380t42.5-17.5Z"/></svg>
+            <span data-i18n="commonPreview"></span>
+        </div>
+        <div class="menu-item" id="menu-move">
+            <svg class="menu-item-icon" height="18px" viewBox="0 -960 960 960" width="18px" fill="currentColor"><path d="m488-400-65 65 56 56 161-161-161-161-56 56 65 65H320v80h168ZM160-160q-33 0-56.5-23.5T80-240v-480q0-33 23.5-56.5T160-800h240l80 80h320q33 0 56.5 23.5T880-640v400q0 33-23.5 56.5T800-160H160Zm0-80h640v-400H447l-80-80H160v480Zm0 0v-480 480Z"/></svg>
+            <span data-i18n="commonMove"></span>
+        </div>
+        <div class="menu-item" id="menu-details">
+            <svg class="menu-item-icon" height="18px" viewBox="0 -960 960 960" width="18px" fill="currentColor"><path d="M440-280h80v-240h-80v240Zm40-320q17 0 28.5-11.5T520-640q0-17-11.5-28.5T480-680q-17 0-28.5 11.5T440-640q0 17 11.5 28.5T480-600Zm0 520q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg>
+            <span data-i18n="commonInfo"></span>
+        </div>
+        <div class="menu-item" id="menu-delete" style="color: var(--danger);">
+            <svg class="menu-item-icon" height="18px" viewBox="0 -960 960 960" width="18px" fill="var(--danger)"><path d="M280-120q-33 0-56.5-23.5T200-200v-520h-40v-80h200v-40h240v40h200v80h-40v520q0 33-23.5 56.5T680-120H280Zm400-600H280v520h400v-520ZM360-280h80v-360h-80v360Zm160 0h80v-360h-80v360ZM280-720v520-520Z"/></svg>
+            <span data-i18n="commonDelete"></span>
+        </div>
+    </div>
+
+    <!-- 文件预览弹窗 -->
+    <div id="preview-overlay" class="dialog-overlay">
+        <div id="preview-container" class="preview-container">
+            <div id="preview-content" class="preview-content"></div>
+            <div id="preview-info" class="preview-info">
+                <div id="preview-details" style="flex: 1; padding: 16px; font-size: 14px;"></div>
+                <div style="display: flex; align-items: center; justify-content: flex-end; padding: 12px 16px;">
+                    <button id="preview-close-btn" class="mini-btn" style="min-width: 80px;" data-i18n="close"></button>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

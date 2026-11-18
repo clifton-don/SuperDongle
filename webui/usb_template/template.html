@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title data-i18n="pageTitle">SuperDongle</title>
+<style>
+  /* =======================================================
+     主题变量 —— 与 files.html / hid_devices.html / ncm.html 保持一致
+     通过 data-theme="light" / "dark" 切换
+     ======================================================= */
+  :root {
+    --primary: #0066cc;
+    --primary-dark: #0052a3;
+    --bg: #f5f7fa;
+    --card: #ffffff;
+    --border: #e0e0e0;
+    --text: #333;
+    --dim: #666;
+  }
+  [data-theme="dark"] {
+    --primary: #00bcd4;
+    --primary-dark: #0097a7;
+    --bg: #0f0f0f;
+    --card: #1a1a1a;
+    --border: #2a2a2a;
+    --text: #f5f5f5;
+    --dim: #888;
+  }
+
+  /* 基础样式（根据业务需要可修改） */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; width: 100%; overflow: hidden; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    /* 如需全屏居中，保留下面三行；否则改自己的布局 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* =======================================================
+     下面是业务内容区 —— 按需替换（示例：居中卡片 + 标题 + 描述）
+     ======================================================= */
+  .page {
+    padding: 20px;
+    text-align: center;
+  }
+  .page .title { font-size: 22px; font-weight: 600; margin-bottom: 8px; }
+  .page .desc  { font-size: 14px; color: var(--dim); }
+</style>
+</head>
+<body data-theme="dark">
+
+  <!-- 业务内容区（替换为你的 UI） -->
+  <div class="page">
+    <h1 class="title" data-i18n="title">标题</h1>
+    <p class="desc" data-i18n="desc">描述</p>
+  </div>
+
+<script>
+/* =============================================================
+   # 共用基础设施 —— 不要动下面这一段（除非你很清楚自己在做什么）
+   #  1. i18n 字典
+   #  2. 主题变量（CSS 变量已经在 <style> 里写好，这里只负责切换 data-theme）
+   #  3. BroadcastChannel 实时同步（index 页面切语言/主题时，本页自动跟着变）
+   #  4. localStorage 持久化（lang / theme）
+   ============================================================= */
+
+/* ---------- 1. i18n 字典（增删你的 key 即可） ---------- */
+var i18n = {
+  zh: {
+    pageTitle: 'SuperDongle',
+    title: '标题',
+    desc:  '描述',
+  },
+  en: {
+    pageTitle: 'SuperDongle',
+    title: 'Title',
+    desc:  'Description',
+  }
+};
+
+/* ---------- 2. 基础变量 ---------- */
+var L = localStorage.getItem('lang') || (navigator.language.slice(0,2)==='zh' ? 'zh' : 'en');
+var T = function(k){ return (i18n[L] && i18n[L][k]) ? i18n[L][k] : k; };
+
+/* ---------- 3. 主题 ---------- */
+(function(){
+  var savedTheme = localStorage.getItem('theme');
+  if (savedTheme) document.body.dataset.theme = savedTheme;
+})();
+
+/* ---------- 4. 应用语言到页面 ---------- */
+function applyLang(){
+  document.querySelectorAll('[data-i18n]').forEach(function(el){
+    el.textContent = T(el.dataset.i18n);
+  });
+  document.title = T('pageTitle');
+}
+applyLang();
+
+/* ---------- 5. 实时同步（index 或其他页面切语言/主题，本页自动刷新） ---------- */
+var bcL = new BroadcastChannel('superdongle_lang');
+bcL.onmessage = function(e){
+  L = e.data;
+  localStorage.setItem('lang', e.data);
+  applyLang();
+};
+
+var bcT = new BroadcastChannel('superdongle_theme');
+bcT.onmessage = function(e){
+  document.body.dataset.theme = e.data;
+  localStorage.setItem('theme', e.data);
+};
+
+/* 兜底：其他标签页直接写 localStorage 的情况 */
+window.addEventListener('storage', function(e){
+  if (e.key === 'lang' && e.newValue) { L = e.newValue; applyLang(); }
+  if (e.key === 'theme' && e.newValue) { document.body.dataset.theme = e.newValue; }
+});
+
+/* =============================================================
+   # 业务代码（从这里开始写你的逻辑）
+   ============================================================= */
+</script>
+</body>
+</html>

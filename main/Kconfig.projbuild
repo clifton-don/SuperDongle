@@ -1,0 +1,72 @@
+menu "SuperDongle Hardware Configuration"
+
+    choice BOARD_MODEL
+        prompt "Board model"
+        default BOARD_ESP32_CHIP
+        help
+            Select your hardware board model.
+            ESP32-S3-Chip:   bare ESP32-S3 chip design, 8-pin SD card slot, no CD pin.
+            ESP32-S3-Module: ESP32-S3 module design, 9-pin SD card slot with CD pin.
+
+    config BOARD_ESP32_CHIP
+        bool "ESP32-S3-Chip (SD: CLK=48, CMD=4, D0=47, D1=38, D2=10, D3=5 | LED=17)"
+
+    config BOARD_ESP32_MODULE
+        bool "ESP32-S3-Module (SD: CLK=7, CMD=16, D0=6, D1=5, D2=18, D3=17, CD=4 | LED=11)"
+
+    endchoice
+
+    config SDMMC_CLK_PIN
+        int "SDMMC CLK GPIO"
+        default 48 if BOARD_ESP32_CHIP
+        default 7  if BOARD_ESP32_MODULE
+
+    config SDMMC_CMD_PIN
+        int "SDMMC CMD GPIO"
+        default 4  if BOARD_ESP32_CHIP
+        default 16 if BOARD_ESP32_MODULE
+
+    config SDMMC_D0_PIN
+        int "SDMMC D0 GPIO"
+        default 47 if BOARD_ESP32_CHIP
+        default 6  if BOARD_ESP32_MODULE
+
+    config SDMMC_D1_PIN
+        int "SDMMC D1 GPIO"
+        default 38 if BOARD_ESP32_CHIP
+        default 5  if BOARD_ESP32_MODULE
+
+    config SDMMC_D2_PIN
+        int "SDMMC D2 GPIO"
+        default 10 if BOARD_ESP32_CHIP
+        default 18 if BOARD_ESP32_MODULE
+
+    config SDMMC_D3_PIN
+        int "SDMMC D3 GPIO"
+        default 5  if BOARD_ESP32_CHIP
+        default 17 if BOARD_ESP32_MODULE
+
+    config SDMMC_USE_CD_PIN
+        bool "Enable SD card CD (Card Detect) pin"
+        default n if BOARD_ESP32_CHIP
+        default y if BOARD_ESP32_MODULE
+        help
+            Enable this if your board has a CD pin on the SD card slot.
+            ESP32-S3-Chip:   8-pin slot, no CD pin, keep disabled.
+            ESP32-S3-Module: 9-pin slot, has CD pin, enable and configure the GPIO number.
+
+    config SDMMC_CD_PIN_GPIO
+        int "SD card CD GPIO number"
+        default 4
+        depends on SDMMC_USE_CD_PIN
+        help
+            GPIO pin connected to the SD card slot CD (Card Detect) pin.
+
+    config LED_GPIO_PIN
+        int "WS2812 LED data GPIO"
+        default 17 if BOARD_ESP32_CHIP
+        default 11 if BOARD_ESP32_MODULE
+        help
+            GPIO pin for WS2812 RGB LED data line.
+
+endmenu

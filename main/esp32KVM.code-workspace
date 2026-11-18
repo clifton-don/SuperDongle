@@ -1,0 +1,28 @@
+{
+	"folders": [
+		{
+			"path": "../../esp32KVM"
+		},
+		{
+			"name": "241106-132401-esp32doit-devkit-v1",
+			"path": "../../241106-132401-esp32doit-devkit-v1"
+		},
+		{
+			"name": "ESP32WiFiManager",
+			"path": "../../ESP32WiFiManager"
+		},
+		{
+			"name": "ESP_idf",
+			"path": "../../ESP_idf"
+		},
+		{
+			"name": "SuperDongle",
+			"path": ".."
+		},
+		{
+			"name": "260427-172647-esp12e",
+			"path": "../../260427-172647-esp12e"
+		}
+	],
+	"settings": {}
+}
